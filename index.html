@@ -1,0 +1,1307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Quote Board Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500;600&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --steel: #dfe5ea;
+  --steel-deep: #cfd8df;
+  --sheet: #fbfcfc;
+  --ink: #17252f;
+  --ink-soft: #52626e;
+  --line: #b9c5ce;
+  --dye: #1e3f9e;
+  --dye-soft: #dfe6f8;
+  --on-dye: #ffffff;
+  --age: #8a4a00;
+  --age-soft: #fbecd2;
+  --bad: #a42323;
+  --good: #1c6b43;
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --steel: #141c23; --steel-deep: #1c262f; --sheet: #222e38; --ink: #e8eef2; --ink-soft: #a6b5c0;
+    --line: #3c4b57; --dye: #9db4f5; --dye-soft: #2a3963; --on-dye: #101a33;
+    --age: #f3bd6e; --age-soft: #4a3313; --bad: #f19a9a; --good: #7fd3a6;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --steel: #141c23; --steel-deep: #1c262f; --sheet: #222e38; --ink: #e8eef2; --ink-soft: #a6b5c0;
+  --line: #3c4b57; --dye: #9db4f5; --dye-soft: #2a3963; --on-dye: #101a33;
+  --age: #f3bd6e; --age-soft: #4a3313; --bad: #f19a9a; --good: #7fd3a6;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--steel); color: var(--ink); font: 400 15px/1.45 Barlow, Arial, sans-serif; }
+h1, h2, h3 { font-family: "Barlow Condensed", Arial, sans-serif; font-weight: 600; margin: 0; line-height: 1.15; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--dye); outline-offset: 2px; }
+
+input, select, textarea {
+  width: 100%; min-height: 38px; padding: 7px 9px; background: var(--sheet);
+  border: 1px solid var(--line); border-radius: 3px;
+}
+input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: var(--dye); }
+textarea { min-height: 76px; resize: vertical; }
+label { display: grid; gap: 3px; font-weight: 500; font-size: 14px; }
+label.check { display: flex; align-items: center; gap: 7px; font-weight: 400; white-space: nowrap; }
+
+.btn {
+  min-height: 38px; padding: 6px 13px; background: transparent; border: 1px solid var(--line);
+  border-radius: 3px; cursor: pointer; font-weight: 500; white-space: nowrap;
+}
+.btn:hover { background: var(--steel-deep); }
+.btn.primary { background: var(--dye); color: var(--on-dye); border-color: var(--dye); }
+.btn.primary:hover { filter: brightness(1.12); }
+.btn.quiet { border-color: transparent; }
+
+.topbar {
+  display: flex; align-items: center; gap: 22px; padding: 9px 18px;
+  background: var(--dye); color: var(--on-dye); flex-wrap: wrap;
+}
+.topbar h1 { font-size: 25px; }
+.topbar nav { display: flex; gap: 4px; }
+.topbar nav button {
+  background: none; border: 0; color: inherit; padding: 6px 10px; cursor: pointer;
+  font-weight: 500; border-bottom: 3px solid transparent;
+}
+.topbar nav button[aria-current="page"] { border-bottom-color: currentColor; }
+.topbar :focus-visible { outline-color: currentColor; }
+.topbar .spacer { flex: 1; }
+.topbar .who { display: flex; align-items: center; gap: 4px; }
+.topbar .btn { color: inherit; border-color: currentColor; }
+.topbar .btn:hover { background: transparent; text-decoration: underline; }
+.topbar .btn.quiet { border-color: transparent; }
+
+.filters { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; padding: 12px 18px 4px; }
+.filters label { min-width: 145px; }
+.views.layout { flex: none; }
+.filters .search { min-width: 220px; flex: 0 1 280px; }
+.views { display: flex; flex-wrap: wrap; gap: 4px; }
+.views button { min-height: 38px; padding: 5px 10px; background: none; border: 1px solid transparent; border-radius: 3px; cursor: pointer; }
+.views button:hover { background: var(--steel-deep); }
+.views button[aria-pressed="true"] { background: var(--dye-soft); border-color: var(--dye); font-weight: 500; }
+
+.board-wrap { overflow-x: auto; padding: 8px 18px 22px; }
+.board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(166px, 1fr); gap: 0 6px; min-width: min-content; grid-template-rows: auto auto; }
+.lane-label {
+  grid-row: 1; font: 600 16px "Barlow Condensed", Arial, sans-serif; color: var(--ink-soft);
+  border-bottom: 2px solid var(--ink-soft); padding-bottom: 2px; margin-bottom: 7px;
+}
+.column { grid-row: 2; display: flex; flex-direction: column; min-height: calc(100vh - 210px); background: var(--steel-deep); border-radius: 3px; }
+.column header { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 10px 4px; gap: 8px; }
+.column h2 { font-size: 19px; }
+.column .count { font: 600 22px "Barlow Condensed", Arial, sans-serif; color: var(--ink-soft); }
+.tiles { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 4px 6px 10px; min-height: 90px; }
+.tiles.empty::after { content: "No quotes"; color: var(--ink-soft); text-align: center; padding: 14px 0; font-size: 14px; }
+.tiles.sortable-over.empty::after, .dragging .tiles.empty::after { content: ""; }
+
+.tile {
+  position: relative; display: block; width: 100%; text-align: left; padding: 8px 9px 7px;
+  background: var(--sheet); border: 1px solid var(--line); border-radius: 2px; cursor: grab;
+}
+.tile:hover { border-color: var(--dye); }
+.tile.readonly { cursor: pointer; }
+.tile.sortable-ghost { opacity: .35; }
+.tile.sortable-drag { box-shadow: 0 6px 16px rgb(10 25 40 / .28); transform: rotate(1deg); }
+.tile.internal { padding-top: 15px; }
+.tile.internal::before {
+  content: ""; position: absolute; inset: 0 0 auto; height: 8px;
+  background: repeating-linear-gradient(135deg, var(--dye) 0 2px, transparent 2px 6px);
+}
+.tile .row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2px 8px; }
+.tile .row.top { align-items: flex-start; flex-wrap: nowrap; }
+.tile .dates { text-align: right; }
+.tile .due.slipping, td.slipping { color: var(--age); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.chip { padding: 0 5px; border: 1px solid var(--line); border-radius: 2px; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.chip.key { background: var(--dye); border-color: var(--dye); color: var(--on-dye); }
+.owners { display: inline-flex; gap: 6px; }
+.owner { display: inline-flex; align-items: center; gap: 2px; }
+.owner-role { font-size: 11px; font-weight: 600; color: var(--ink-soft); }
+.tile .number { white-space: nowrap; font: 500 15px "Barlow Condensed", Arial, sans-serif; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.tile .due { white-space: nowrap; font-size: 13px; color: var(--ink-soft); }
+.tile .due.late { color: var(--bad); font-weight: 600; }
+.tile .title { font-weight: 600; line-height: 1.25; margin: 1px 0; overflow-wrap: anywhere; }
+.tile .customer { color: var(--ink-soft); font-size: 14px; }
+.tile .missing { margin: 5px 0 0; padding: 3px 6px; background: var(--age-soft); color: var(--age); font-size: 13px; overflow-wrap: anywhere; }
+.tile .foot { margin-top: 6px; font-size: 13px; color: var(--ink-soft); }
+.tile .age.old { color: var(--age); font-weight: 600; }
+.avatar {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; flex: none;
+  background: var(--dye-soft); color: var(--dye); font-weight: 600; font-size: 12px;
+}
+.avatar.none { background: none; border: 1px dashed var(--ink-soft); color: var(--ink-soft); }
+
+.page { max-width: 1120px; margin: 0 auto; padding: 20px 18px 40px; }
+.page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.page-head h2 { font-size: 30px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; background: var(--sheet); border: 1px solid var(--line); margin-bottom: 18px; }
+.stat { padding: 10px 14px; border-right: 1px solid var(--line); }
+.stat:last-child { border-right: 0; }
+.stat b { display: block; font: 600 34px/1.05 "Barlow Condensed", Arial, sans-serif; }
+.stat span { color: var(--ink-soft); font-size: 14px; }
+.page > .panel { margin-bottom: 18px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; margin-bottom: 18px; }
+.panel { background: var(--sheet); border: 1px solid var(--line); padding: 13px 15px; min-width: 0; }
+.panel h3 { font-size: 21px; margin-bottom: 9px; }
+.panel .hint { color: var(--ink-soft); font-size: 14px; margin: -5px 0 10px; }
+.bar-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) 30px; gap: 8px; align-items: center; margin: 5px 0; font-size: 14px; }
+.bar-track { height: 13px; background: var(--steel); }
+.bar { height: 13px; min-width: 2px; background: var(--dye); border-radius: 0 3px 3px 0; }
+.bar-value { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.panel .bar-row:has(.bar[data-tip*="$"]) { grid-template-columns: 112px minmax(0, 1fr) 58px; }
+.sales-grid { grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); }
+.sample-note { margin-bottom: 14px; }
+.chart { display: block; width: 100%; height: auto; }
+.chart text { fill: var(--ink-soft); font: 400 12px Barlow, Arial, sans-serif; }
+.chart .end-label { fill: var(--ink); font-weight: 600; }
+.chart .grid { stroke: var(--line); stroke-width: 1; opacity: .55; }
+.chart .line { fill: none; stroke: var(--series-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot { fill: var(--series-1); stroke: var(--sheet); stroke-width: 2; }
+.chart .hit { fill: transparent; }
+.chart .hit:hover { fill: var(--ink); fill-opacity: .06; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; color: var(--ink-soft); margin-bottom: 4px; }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 11px; height: 11px; border-radius: 2px; }
+.chart-table { margin-top: 8px; font-size: 14px; color: var(--ink-soft); }
+.chart-table summary { cursor: pointer; }
+.chart-table table { margin-top: 5px; color: var(--ink); }
+.chart-tip { position: fixed; z-index: 30; max-width: 280px; padding: 5px 9px; background: var(--ink); color: var(--sheet); border-radius: 3px; font-size: 13px; pointer-events: none; }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 600; border-bottom: 2px solid var(--ink-soft); padding: 5px 8px 4px 0; }
+td { border-bottom: 1px solid var(--line); padding: 6px 8px 6px 0; vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.work-list { margin: 0; padding: 0; list-style: none; }
+.work-list span { color: var(--ink-soft); }
+.empty-note { color: var(--ink-soft); margin: 4px 0; }
+
+.settings-row { display: grid; grid-template-columns: 74px minmax(110px, 1fr) 80px auto auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.settings-row .order { display: flex; gap: 2px; }
+.icon-btn { width: 34px; min-height: 34px; padding: 0; }
+.lane-tag { color: var(--ink-soft); font-size: 14px; }
+.user-row { grid-template-columns: minmax(130px, 1fr) 110px auto auto; }
+.table-panel { padding: 0; }
+.quote-table { min-width: 1240px; }
+.quote-table th, .quote-table td { padding: 7px 10px; white-space: nowrap; }
+.quote-table td:nth-child(2) { white-space: normal; min-width: 170px; }
+.quote-table tbody tr:hover { background: var(--dye-soft); }
+.quote-table th { padding: 0; }
+.sort { width: 100%; min-height: 38px; padding: 6px 10px; background: none; border: 0; text-align: left; font-weight: 600; cursor: pointer; }
+.sort:hover { background: var(--steel-deep); }
+.link { padding: 0; background: none; border: 0; color: var(--dye); text-decoration: underline; cursor: pointer; font: inherit; overflow-wrap: anywhere; text-align: left; }
+.work-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 14px; align-items: start; }
+.work-grid.wide { grid-template-columns: repeat(auto-fit, minmax(min(620px, 100%), 1fr)); }
+.assign-panel { margin-bottom: 16px; }
+.assign-panel select { min-width: 150px; }
+.section-title { font-size: 21px; }
+.view-note { margin: 2px 0 9px; color: var(--ink-soft); font-size: 14px; }
+.work-table th, .work-table td { white-space: nowrap; }
+.work-table td:nth-child(2) { white-space: normal; }
+.rank-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+.rank-row { display: flex; align-items: center; gap: 10px; padding: 7px 9px; background: var(--steel); border-radius: 2px; }
+.rank-row.movable { cursor: grab; }
+.rank-row.sortable-ghost { opacity: .35; }
+.rank { flex: none; width: 34px; font: 600 27px/1 "Barlow Condensed", Arial, sans-serif; text-align: center; font-variant-numeric: tabular-nums; }
+.rank-body { flex: 1; min-width: 0; }
+.rank-meta { color: var(--ink-soft); font-size: 13px; }
+.rank-row .order { display: flex; gap: 2px; flex: none; }
+.read-field { display: grid; gap: 3px; align-content: start; font-size: 14px; }
+.read-label { font-weight: 500; }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; margin-top: 12px; }
+
+dialog { width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 1px solid var(--line); border-radius: 3px; background: var(--sheet); color: var(--ink); box-shadow: 0 16px 42px rgb(10 25 40 / .35); }
+dialog::backdrop { background: rgb(14 28 41 / .55); }
+dialog.small { width: min(460px, calc(100vw - 24px)); }
+.dialog-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 14px 18px 8px; }
+.dialog-head h2 { font-size: 25px; }
+.dialog-head .sub { color: var(--ink-soft); font-size: 14px; }
+.dialog-body { padding: 4px 18px 14px; display: grid; gap: 11px; }
+.dialog-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 18px 14px; border-top: 1px solid var(--line); position: sticky; bottom: 0; background: var(--sheet); }
+.cols2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 11px; }
+.cols3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; margin-top: 6px; }
+.dialog-body h3 { font-size: 20px; }
+.key-check { align-self: end; min-height: 38px; font-weight: 500; }
+.hint-text { color: var(--ink-soft); font-size: 14px; margin: 2px 0 6px; }
+.document { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.file-input { margin-top: 8px; padding: 6px; }
+.notice { padding: 7px 9px; background: var(--age-soft); color: var(--age); font-size: 14px; }
+.error { color: var(--bad); font-size: 14px; font-weight: 500; }
+.parts-head { display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
+.part-row { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) 34px; gap: 6px; align-items: end; margin-top: 5px; }
+.part-row label { font-size: 13px; font-weight: 400; }
+.history { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+.history li { padding: 5px 0; border-bottom: 1px solid var(--line); }
+.history small { color: var(--ink-soft); display: block; font-size: 13px; }
+
+.login { min-height: 100%; display: grid; place-items: center; padding: 18px; background: var(--dye); }
+.login form { width: min(370px, 100%); background: var(--sheet); padding: 22px; display: grid; gap: 12px; border-radius: 3px; }
+.login h1 { font-size: 34px; }
+
+#toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 20; max-width: calc(100vw - 32px); }
+#toast div { background: var(--ink); color: var(--sheet); padding: 9px 14px; border-radius: 3px; }
+
+@media (max-width: 640px) {
+  .topbar { gap: 8px; padding: 8px 16px; }
+  .filters, .board-wrap { padding-left: 16px; padding-right: 16px; }
+  .cols2, .cols3 { grid-template-columns: 1fr; }
+  .chart text { font-size: 16px; }
+  .part-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .settings-row, .user-row { grid-template-columns: 1fr 1fr; }
+  .stat { border-right: 0; border-bottom: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+.who .btn:last-child { display: none; }
+.demo-note { padding: 7px max(16px, env(safe-area-inset-right, 0px)) 7px max(16px, env(safe-area-inset-left, 0px)); background: var(--age-soft); color: var(--age); font-size: 14px; }
+
+</style>
+</head>
+<body>
+<div class="demo-note">Demo with made-up quotes. Changes disappear when you reload.</div>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+/*! Sortable 1.15.6 - MIT | git://github.com/SortableJS/Sortable.git */
+!function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t=t||self).Sortable=e()}(this,function(){"use strict";function e(e,t){var n,o=Object.keys(e);return Object.getOwnPropertySymbols&&(n=Object.getOwnPropertySymbols(e),t&&(n=n.filter(function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable})),o.push.apply(o,n)),o}function I(o){for(var t=1;t<arguments.length;t++){var i=null!=arguments[t]?arguments[t]:{};t%2?e(Object(i),!0).forEach(function(t){var e,n;e=o,t=i[n=t],n in e?Object.defineProperty(e,n,{value:t,enumerable:!0,configurable:!0,writable:!0}):e[n]=t}):Object.getOwnPropertyDescriptors?Object.defineProperties(o,Object.getOwnPropertyDescriptors(i)):e(Object(i)).forEach(function(t){Object.defineProperty(o,t,Object.getOwnPropertyDescriptor(i,t))})}return o}function o(t){return(o="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(t){return typeof t}:function(t){return t&&"function"==typeof Symbol&&t.constructor===Symbol&&t!==Symbol.prototype?"symbol":typeof t})(t)}function a(){return(a=Object.assign||function(t){for(var e=1;e<arguments.length;e++){var n,o=arguments[e];for(n in o)Object.prototype.hasOwnProperty.call(o,n)&&(t[n]=o[n])}return t}).apply(this,arguments)}function i(t,e){if(null==t)return{};var n,o=function(t,e){if(null==t)return{};for(var n,o={},i=Object.keys(t),r=0;r<i.length;r++)n=i[r],0<=e.indexOf(n)||(o[n]=t[n]);return o}(t,e);if(Object.getOwnPropertySymbols)for(var i=Object.getOwnPropertySymbols(t),r=0;r<i.length;r++)n=i[r],0<=e.indexOf(n)||Object.prototype.propertyIsEnumerable.call(t,n)&&(o[n]=t[n]);return o}function r(t){return function(t){if(Array.isArray(t))return l(t)}(t)||function(t){if("undefined"!=typeof Symbol&&null!=t[Symbol.iterator]||null!=t["@@iterator"])return Array.from(t)}(t)||function(t,e){if(t){if("string"==typeof t)return l(t,e);var n=Object.prototype.toString.call(t).slice(8,-1);return"Map"===(n="Object"===n&&t.constructor?t.constructor.name:n)||"Set"===n?Array.from(t):"Arguments"===n||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)?l(t,e):void 0}}(t)||function(){throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}()}function l(t,e){(null==e||e>t.length)&&(e=t.length);for(var n=0,o=new Array(e);n<e;n++)o[n]=t[n];return o}function t(t){if("undefined"!=typeof window&&window.navigator)return!!navigator.userAgent.match(t)}var y=t(/(?:Trident.*rv[ :]?11\.|msie|iemobile|Windows Phone)/i),w=t(/Edge/i),s=t(/firefox/i),u=t(/safari/i)&&!t(/chrome/i)&&!t(/android/i),c=t(/iP(ad|od|hone)/i),n=t(/chrome/i)&&t(/android/i),d={capture:!1,passive:!1};function h(t,e,n){t.addEventListener(e,n,!y&&d)}function p(t,e,n){t.removeEventListener(e,n,!y&&d)}function f(t,e){if(e&&(">"===e[0]&&(e=e.substring(1)),t))try{if(t.matches)return t.matches(e);if(t.msMatchesSelector)return t.msMatchesSelector(e);if(t.webkitMatchesSelector)return t.webkitMatchesSelector(e)}catch(t){return}}function g(t){return t.host&&t!==document&&t.host.nodeType?t.host:t.parentNode}function P(t,e,n,o){if(t){n=n||document;do{if(null!=e&&(">"!==e[0]||t.parentNode===n)&&f(t,e)||o&&t===n)return t}while(t!==n&&(t=g(t)))}return null}var m,v=/\s+/g;function k(t,e,n){var o;t&&e&&(t.classList?t.classList[n?"add":"remove"](e):(o=(" "+t.className+" ").replace(v," ").replace(" "+e+" "," "),t.className=(o+(n?" "+e:"")).replace(v," ")))}function R(t,e,n){var o=t&&t.style;if(o){if(void 0===n)return document.defaultView&&document.defaultView.getComputedStyle?n=document.defaultView.getComputedStyle(t,""):t.currentStyle&&(n=t.currentStyle),void 0===e?n:n[e];o[e=!(e in o||-1!==e.indexOf("webkit"))?"-webkit-"+e:e]=n+("string"==typeof n?"":"px")}}function b(t,e){var n="";if("string"==typeof t)n=t;else do{var o=R(t,"transform")}while(o&&"none"!==o&&(n=o+" "+n),!e&&(t=t.parentNode));var i=window.DOMMatrix||window.WebKitCSSMatrix||window.CSSMatrix||window.MSCSSMatrix;return i&&new i(n)}function D(t,e,n){if(t){var o=t.getElementsByTagName(e),i=0,r=o.length;if(n)for(;i<r;i++)n(o[i],i);return o}return[]}function O(){var t=document.scrollingElement;return t||document.documentElement}function X(t,e,n,o,i){if(t.getBoundingClientRect||t===window){var r,a,l,s,c,u,d=t!==window&&t.parentNode&&t!==O()?(a=(r=t.getBoundingClientRect()).top,l=r.left,s=r.bottom,c=r.right,u=r.height,r.width):(l=a=0,s=window.innerHeight,c=window.innerWidth,u=window.innerHeight,window.innerWidth);if((e||n)&&t!==window&&(i=i||t.parentNode,!y))do{if(i&&i.getBoundingClientRect&&("none"!==R(i,"transform")||n&&"static"!==R(i,"position"))){var h=i.getBoundingClientRect();a-=h.top+parseInt(R(i,"border-top-width")),l-=h.left+parseInt(R(i,"border-left-width")),s=a+r.height,c=l+r.width;break}}while(i=i.parentNode);return o&&t!==window&&(o=(e=b(i||t))&&e.a,t=e&&e.d,e&&(s=(a/=t)+(u/=t),c=(l/=o)+(d/=o))),{top:a,left:l,bottom:s,right:c,width:d,height:u}}}function Y(t,e,n){for(var o=M(t,!0),i=X(t)[e];o;){var r=X(o)[n];if(!("top"===n||"left"===n?r<=i:i<=r))return o;if(o===O())break;o=M(o,!1)}return!1}function B(t,e,n,o){for(var i=0,r=0,a=t.children;r<a.length;){if("none"!==a[r].style.display&&a[r]!==jt.ghost&&(o||a[r]!==jt.dragged)&&P(a[r],n.draggable,t,!1)){if(i===e)return a[r];i++}r++}return null}function F(t,e){for(var n=t.lastElementChild;n&&(n===jt.ghost||"none"===R(n,"display")||e&&!f(n,e));)n=n.previousElementSibling;return n||null}function j(t,e){var n=0;if(!t||!t.parentNode)return-1;for(;t=t.previousElementSibling;)"TEMPLATE"===t.nodeName.toUpperCase()||t===jt.clone||e&&!f(t,e)||n++;return n}function E(t){var e=0,n=0,o=O();if(t)do{var i=b(t),r=i.a,i=i.d}while(e+=t.scrollLeft*r,n+=t.scrollTop*i,t!==o&&(t=t.parentNode));return[e,n]}function M(t,e){if(!t||!t.getBoundingClientRect)return O();var n=t,o=!1;do{if(n.clientWidth<n.scrollWidth||n.clientHeight<n.scrollHeight){var i=R(n);if(n.clientWidth<n.scrollWidth&&("auto"==i.overflowX||"scroll"==i.overflowX)||n.clientHeight<n.scrollHeight&&("auto"==i.overflowY||"scroll"==i.overflowY)){if(!n.getBoundingClientRect||n===document.body)return O();if(o||e)return n;o=!0}}}while(n=n.parentNode);return O()}function S(t,e){return Math.round(t.top)===Math.round(e.top)&&Math.round(t.left)===Math.round(e.left)&&Math.round(t.height)===Math.round(e.height)&&Math.round(t.width)===Math.round(e.width)}function _(e,n){return function(){var t;m||(1===(t=arguments).length?e.call(this,t[0]):e.apply(this,t),m=setTimeout(function(){m=void 0},n))}}function H(t,e,n){t.scrollLeft+=e,t.scrollTop+=n}function C(t){var e=window.Polymer,n=window.jQuery||window.Zepto;return e&&e.dom?e.dom(t).cloneNode(!0):n?n(t).clone(!0)[0]:t.cloneNode(!0)}function T(t,e){R(t,"position","absolute"),R(t,"top",e.top),R(t,"left",e.left),R(t,"width",e.width),R(t,"height",e.height)}function x(t){R(t,"position",""),R(t,"top",""),R(t,"left",""),R(t,"width",""),R(t,"height","")}function L(n,o,i){var r={};return Array.from(n.children).forEach(function(t){var e;P(t,o.draggable,n,!1)&&!t.animated&&t!==i&&(e=X(t),r.left=Math.min(null!==(t=r.left)&&void 0!==t?t:1/0,e.left),r.top=Math.min(null!==(t=r.top)&&void 0!==t?t:1/0,e.top),r.right=Math.max(null!==(t=r.right)&&void 0!==t?t:-1/0,e.right),r.bottom=Math.max(null!==(t=r.bottom)&&void 0!==t?t:-1/0,e.bottom))}),r.width=r.right-r.left,r.height=r.bottom-r.top,r.x=r.left,r.y=r.top,r}var K="Sortable"+(new Date).getTime();function A(){var e,o=[];return{captureAnimationState:function(){o=[],this.options.animation&&[].slice.call(this.el.children).forEach(function(t){var e,n;"none"!==R(t,"display")&&t!==jt.ghost&&(o.push({target:t,rect:X(t)}),e=I({},o[o.length-1].rect),!t.thisAnimationDuration||(n=b(t,!0))&&(e.top-=n.f,e.left-=n.e),t.fromRect=e)})},addAnimationState:function(t){o.push(t)},removeAnimationState:function(t){o.splice(function(t,e){for(var n in t)if(t.hasOwnProperty(n))for(var o in e)if(e.hasOwnProperty(o)&&e[o]===t[n][o])return Number(n);return-1}(o,{target:t}),1)},animateAll:function(t){var c=this;if(!this.options.animation)return clearTimeout(e),void("function"==typeof t&&t());var u=!1,d=0;o.forEach(function(t){var e=0,n=t.target,o=n.fromRect,i=X(n),r=n.prevFromRect,a=n.prevToRect,l=t.rect,s=b(n,!0);s&&(i.top-=s.f,i.left-=s.e),n.toRect=i,n.thisAnimationDuration&&S(r,i)&&!S(o,i)&&(l.top-i.top)/(l.left-i.left)==(o.top-i.top)/(o.left-i.left)&&(t=l,s=r,r=a,a=c.options,e=Math.sqrt(Math.pow(s.top-t.top,2)+Math.pow(s.left-t.left,2))/Math.sqrt(Math.pow(s.top-r.top,2)+Math.pow(s.left-r.left,2))*a.animation),S(i,o)||(n.prevFromRect=o,n.prevToRect=i,e=e||c.options.animation,c.animate(n,l,i,e)),e&&(u=!0,d=Math.max(d,e),clearTimeout(n.animationResetTimer),n.animationResetTimer=setTimeout(function(){n.animationTime=0,n.prevFromRect=null,n.fromRect=null,n.prevToRect=null,n.thisAnimationDuration=null},e),n.thisAnimationDuration=e)}),clearTimeout(e),u?e=setTimeout(function(){"function"==typeof t&&t()},d):"function"==typeof t&&t(),o=[]},animate:function(t,e,n,o){var i,r;o&&(R(t,"transition",""),R(t,"transform",""),i=(r=b(this.el))&&r.a,r=r&&r.d,i=(e.left-n.left)/(i||1),r=(e.top-n.top)/(r||1),t.animatingX=!!i,t.animatingY=!!r,R(t,"transform","translate3d("+i+"px,"+r+"px,0)"),this.forRepaintDummy=t.offsetWidth,R(t,"transition","transform "+o+"ms"+(this.options.easing?" "+this.options.easing:"")),R(t,"transform","translate3d(0,0,0)"),"number"==typeof t.animated&&clearTimeout(t.animated),t.animated=setTimeout(function(){R(t,"transition",""),R(t,"transform",""),t.animated=!1,t.animatingX=!1,t.animatingY=!1},o))}}}var N=[],W={initializeByDefault:!0},z={mount:function(e){for(var t in W)!W.hasOwnProperty(t)||t in e||(e[t]=W[t]);N.forEach(function(t){if(t.pluginName===e.pluginName)throw"Sortable: Cannot mount plugin ".concat(e.pluginName," more than once")}),N.push(e)},pluginEvent:function(e,n,o){var t=this;this.eventCanceled=!1,o.cancel=function(){t.eventCanceled=!0};var i=e+"Global";N.forEach(function(t){n[t.pluginName]&&(n[t.pluginName][i]&&n[t.pluginName][i](I({sortable:n},o)),n.options[t.pluginName]&&n[t.pluginName][e]&&n[t.pluginName][e](I({sortable:n},o)))})},initializePlugins:function(n,o,i,t){for(var e in N.forEach(function(t){var e=t.pluginName;(n.options[e]||t.initializeByDefault)&&((t=new t(n,o,n.options)).sortable=n,t.options=n.options,n[e]=t,a(i,t.defaults))}),n.options){var r;n.options.hasOwnProperty(e)&&(void 0!==(r=this.modifyOption(n,e,n.options[e]))&&(n.options[e]=r))}},getEventProperties:function(e,n){var o={};return N.forEach(function(t){"function"==typeof t.eventProperties&&a(o,t.eventProperties.call(n[t.pluginName],e))}),o},modifyOption:function(e,n,o){var i;return N.forEach(function(t){e[t.pluginName]&&t.optionListeners&&"function"==typeof t.optionListeners[n]&&(i=t.optionListeners[n].call(e[t.pluginName],o))}),i}};function G(t){var e=t.sortable,n=t.rootEl,o=t.name,i=t.targetEl,r=t.cloneEl,a=t.toEl,l=t.fromEl,s=t.oldIndex,c=t.newIndex,u=t.oldDraggableIndex,d=t.newDraggableIndex,h=t.originalEvent,p=t.putSortable,f=t.extraEventProperties;if(e=e||n&&n[K]){var g,m=e.options,t="on"+o.charAt(0).toUpperCase()+o.substr(1);!window.CustomEvent||y||w?(g=document.createEvent("Event")).initEvent(o,!0,!0):g=new CustomEvent(o,{bubbles:!0,cancelable:!0}),g.to=a||n,g.from=l||n,g.item=i||n,g.clone=r,g.oldIndex=s,g.newIndex=c,g.oldDraggableIndex=u,g.newDraggableIndex=d,g.originalEvent=h,g.pullMode=p?p.lastPutMode:void 0;var v,b=I(I({},f),z.getEventProperties(o,e));for(v in b)g[v]=b[v];n&&n.dispatchEvent(g),m[t]&&m[t].call(e,g)}}function U(t,e){var n=(o=2<arguments.length&&void 0!==arguments[2]?arguments[2]:{}).evt,o=i(o,q);z.pluginEvent.bind(jt)(t,e,I({dragEl:Z,parentEl:$,ghostEl:Q,rootEl:J,nextEl:tt,lastDownEl:et,cloneEl:nt,cloneHidden:ot,dragStarted:mt,putSortable:ct,activeSortable:jt.active,originalEvent:n,oldIndex:it,oldDraggableIndex:at,newIndex:rt,newDraggableIndex:lt,hideGhostForTarget:Xt,unhideGhostForTarget:Yt,cloneNowHidden:function(){ot=!0},cloneNowShown:function(){ot=!1},dispatchSortableEvent:function(t){V({sortable:e,name:t,originalEvent:n})}},o))}var q=["evt"];function V(t){G(I({putSortable:ct,cloneEl:nt,targetEl:Z,rootEl:J,oldIndex:it,oldDraggableIndex:at,newIndex:rt,newDraggableIndex:lt},t))}var Z,$,Q,J,tt,et,nt,ot,it,rt,at,lt,st,ct,ut,dt,ht,pt,ft,gt,mt,vt,bt,yt,wt,Dt=!1,Et=!1,St=[],_t=!1,Ct=!1,Tt=[],xt=!1,Ot=[],Mt="undefined"!=typeof document,At=c,Nt=w||y?"cssFloat":"float",It=Mt&&!n&&!c&&"draggable"in document.createElement("div"),Pt=function(){if(Mt){if(y)return!1;var t=document.createElement("x");return t.style.cssText="pointer-events:auto","auto"===t.style.pointerEvents}}(),kt=function(t,e){var n=R(t),o=parseInt(n.width)-parseInt(n.paddingLeft)-parseInt(n.paddingRight)-parseInt(n.borderLeftWidth)-parseInt(n.borderRightWidth),i=B(t,0,e),r=B(t,1,e),a=i&&R(i),l=r&&R(r),s=a&&parseInt(a.marginLeft)+parseInt(a.marginRight)+X(i).width,t=l&&parseInt(l.marginLeft)+parseInt(l.marginRight)+X(r).width;if("flex"===n.display)return"column"===n.flexDirection||"column-reverse"===n.flexDirection?"vertical":"horizontal";if("grid"===n.display)return n.gridTemplateColumns.split(" ").length<=1?"vertical":"horizontal";if(i&&a.float&&"none"!==a.float){e="left"===a.float?"left":"right";return!r||"both"!==l.clear&&l.clear!==e?"horizontal":"vertical"}return i&&("block"===a.display||"flex"===a.display||"table"===a.display||"grid"===a.display||o<=s&&"none"===n[Nt]||r&&"none"===n[Nt]&&o<s+t)?"vertical":"horizontal"},Rt=function(t){function l(r,a){return function(t,e,n,o){var i=t.options.group.name&&e.options.group.name&&t.options.group.name===e.options.group.name;if(null==r&&(a||i))return!0;if(null==r||!1===r)return!1;if(a&&"clone"===r)return r;if("function"==typeof r)return l(r(t,e,n,o),a)(t,e,n,o);e=(a?t:e).options.group.name;return!0===r||"string"==typeof r&&r===e||r.join&&-1<r.indexOf(e)}}var e={},n=t.group;n&&"object"==o(n)||(n={name:n}),e.name=n.name,e.checkPull=l(n.pull,!0),e.checkPut=l(n.put),e.revertClone=n.revertClone,t.group=e},Xt=function(){!Pt&&Q&&R(Q,"display","none")},Yt=function(){!Pt&&Q&&R(Q,"display","")};Mt&&!n&&document.addEventListener("click",function(t){if(Et)return t.preventDefault(),t.stopPropagation&&t.stopPropagation(),t.stopImmediatePropagation&&t.stopImmediatePropagation(),Et=!1},!0);function Bt(t){if(Z){t=t.touches?t.touches[0]:t;var e=(i=t.clientX,r=t.clientY,St.some(function(t){var e=t[K].options.emptyInsertThreshold;if(e&&!F(t)){var n=X(t),o=i>=n.left-e&&i<=n.right+e,e=r>=n.top-e&&r<=n.bottom+e;return o&&e?a=t:void 0}}),a);if(e){var n,o={};for(n in t)t.hasOwnProperty(n)&&(o[n]=t[n]);o.target=o.rootEl=e,o.preventDefault=void 0,o.stopPropagation=void 0,e[K]._onDragOver(o)}}var i,r,a}function Ft(t){Z&&Z.parentNode[K]._isOutsideThisEl(t.target)}function jt(t,e){if(!t||!t.nodeType||1!==t.nodeType)throw"Sortable: `el` must be an HTMLElement, not ".concat({}.toString.call(t));this.el=t,this.options=e=a({},e),t[K]=this;var n,o,i={group:null,sort:!0,disabled:!1,store:null,handle:null,draggable:/^[uo]l$/i.test(t.nodeName)?">li":">*",swapThreshold:1,invertSwap:!1,invertedSwapThreshold:null,removeCloneOnHide:!0,direction:function(){return kt(t,this.options)},ghostClass:"sortable-ghost",chosenClass:"sortable-chosen",dragClass:"sortable-drag",ignore:"a, img",filter:null,preventOnFilter:!0,animation:0,easing:null,setData:function(t,e){t.setData("Text",e.textContent)},dropBubble:!1,dragoverBubble:!1,dataIdAttr:"data-id",delay:0,delayOnTouchOnly:!1,touchStartThreshold:(Number.parseInt?Number:window).parseInt(window.devicePixelRatio,10)||1,forceFallback:!1,fallbackClass:"sortable-fallback",fallbackOnBody:!1,fallbackTolerance:0,fallbackOffset:{x:0,y:0},supportPointer:!1!==jt.supportPointer&&"PointerEvent"in window&&(!u||c),emptyInsertThreshold:5};for(n in z.initializePlugins(this,t,i),i)n in e||(e[n]=i[n]);for(o in Rt(e),this)"_"===o.charAt(0)&&"function"==typeof this[o]&&(this[o]=this[o].bind(this));this.nativeDraggable=!e.forceFallback&&It,this.nativeDraggable&&(this.options.touchStartThreshold=1),e.supportPointer?h(t,"pointerdown",this._onTapStart):(h(t,"mousedown",this._onTapStart),h(t,"touchstart",this._onTapStart)),this.nativeDraggable&&(h(t,"dragover",this),h(t,"dragenter",this)),St.push(this.el),e.store&&e.store.get&&this.sort(e.store.get(this)||[]),a(this,A())}function Ht(t,e,n,o,i,r,a,l){var s,c,u=t[K],d=u.options.onMove;return!window.CustomEvent||y||w?(s=document.createEvent("Event")).initEvent("move",!0,!0):s=new CustomEvent("move",{bubbles:!0,cancelable:!0}),s.to=e,s.from=t,s.dragged=n,s.draggedRect=o,s.related=i||e,s.relatedRect=r||X(e),s.willInsertAfter=l,s.originalEvent=a,t.dispatchEvent(s),c=d?d.call(u,s,a):c}function Lt(t){t.draggable=!1}function Kt(){xt=!1}function Wt(t){return setTimeout(t,0)}function zt(t){return clearTimeout(t)}jt.prototype={constructor:jt,_isOutsideThisEl:function(t){this.el.contains(t)||t===this.el||(vt=null)},_getDirection:function(t,e){return"function"==typeof this.options.direction?this.options.direction.call(this,t,e,Z):this.options.direction},_onTapStart:function(e){if(e.cancelable){var n=this,o=this.el,t=this.options,i=t.preventOnFilter,r=e.type,a=e.touches&&e.touches[0]||e.pointerType&&"touch"===e.pointerType&&e,l=(a||e).target,s=e.target.shadowRoot&&(e.path&&e.path[0]||e.composedPath&&e.composedPath()[0])||l,c=t.filter;if(!function(t){Ot.length=0;var e=t.getElementsByTagName("input"),n=e.length;for(;n--;){var o=e[n];o.checked&&Ot.push(o)}}(o),!Z&&!(/mousedown|pointerdown/.test(r)&&0!==e.button||t.disabled)&&!s.isContentEditable&&(this.nativeDraggable||!u||!l||"SELECT"!==l.tagName.toUpperCase())&&!((l=P(l,t.draggable,o,!1))&&l.animated||et===l)){if(it=j(l),at=j(l,t.draggable),"function"==typeof c){if(c.call(this,e,l,this))return V({sortable:n,rootEl:s,name:"filter",targetEl:l,toEl:o,fromEl:o}),U("filter",n,{evt:e}),void(i&&e.preventDefault())}else if(c=c&&c.split(",").some(function(t){if(t=P(s,t.trim(),o,!1))return V({sortable:n,rootEl:t,name:"filter",targetEl:l,fromEl:o,toEl:o}),U("filter",n,{evt:e}),!0}))return void(i&&e.preventDefault());t.handle&&!P(s,t.handle,o,!1)||this._prepareDragStart(e,a,l)}}},_prepareDragStart:function(t,e,n){var o,i=this,r=i.el,a=i.options,l=r.ownerDocument;n&&!Z&&n.parentNode===r&&(o=X(n),J=r,$=(Z=n).parentNode,tt=Z.nextSibling,et=n,st=a.group,ut={target:jt.dragged=Z,clientX:(e||t).clientX,clientY:(e||t).clientY},ft=ut.clientX-o.left,gt=ut.clientY-o.top,this._lastX=(e||t).clientX,this._lastY=(e||t).clientY,Z.style["will-change"]="all",o=function(){U("delayEnded",i,{evt:t}),jt.eventCanceled?i._onDrop():(i._disableDelayedDragEvents(),!s&&i.nativeDraggable&&(Z.draggable=!0),i._triggerDragStart(t,e),V({sortable:i,name:"choose",originalEvent:t}),k(Z,a.chosenClass,!0))},a.ignore.split(",").forEach(function(t){D(Z,t.trim(),Lt)}),h(l,"dragover",Bt),h(l,"mousemove",Bt),h(l,"touchmove",Bt),a.supportPointer?(h(l,"pointerup",i._onDrop),this.nativeDraggable||h(l,"pointercancel",i._onDrop)):(h(l,"mouseup",i._onDrop),h(l,"touchend",i._onDrop),h(l,"touchcancel",i._onDrop)),s&&this.nativeDraggable&&(this.options.touchStartThreshold=4,Z.draggable=!0),U("delayStart",this,{evt:t}),!a.delay||a.delayOnTouchOnly&&!e||this.nativeDraggable&&(w||y)?o():jt.eventCanceled?this._onDrop():(a.supportPointer?(h(l,"pointerup",i._disableDelayedDrag),h(l,"pointercancel",i._disableDelayedDrag)):(h(l,"mouseup",i._disableDelayedDrag),h(l,"touchend",i._disableDelayedDrag),h(l,"touchcancel",i._disableDelayedDrag)),h(l,"mousemove",i._delayedDragTouchMoveHandler),h(l,"touchmove",i._delayedDragTouchMoveHandler),a.supportPointer&&h(l,"pointermove",i._delayedDragTouchMoveHandler),i._dragStartTimer=setTimeout(o,a.delay)))},_delayedDragTouchMoveHandler:function(t){t=t.touches?t.touches[0]:t;Math.max(Math.abs(t.clientX-this._lastX),Math.abs(t.clientY-this._lastY))>=Math.floor(this.options.touchStartThreshold/(this.nativeDraggable&&window.devicePixelRatio||1))&&this._disableDelayedDrag()},_disableDelayedDrag:function(){Z&&Lt(Z),clearTimeout(this._dragStartTimer),this._disableDelayedDragEvents()},_disableDelayedDragEvents:function(){var t=this.el.ownerDocument;p(t,"mouseup",this._disableDelayedDrag),p(t,"touchend",this._disableDelayedDrag),p(t,"touchcancel",this._disableDelayedDrag),p(t,"pointerup",this._disableDelayedDrag),p(t,"pointercancel",this._disableDelayedDrag),p(t,"mousemove",this._delayedDragTouchMoveHandler),p(t,"touchmove",this._delayedDragTouchMoveHandler),p(t,"pointermove",this._delayedDragTouchMoveHandler)},_triggerDragStart:function(t,e){e=e||"touch"==t.pointerType&&t,!this.nativeDraggable||e?this.options.supportPointer?h(document,"pointermove",this._onTouchMove):h(document,e?"touchmove":"mousemove",this._onTouchMove):(h(Z,"dragend",this),h(J,"dragstart",this._onDragStart));try{document.selection?Wt(function(){document.selection.empty()}):window.getSelection().removeAllRanges()}catch(t){}},_dragStarted:function(t,e){var n;Dt=!1,J&&Z?(U("dragStarted",this,{evt:e}),this.nativeDraggable&&h(document,"dragover",Ft),n=this.options,t||k(Z,n.dragClass,!1),k(Z,n.ghostClass,!0),jt.active=this,t&&this._appendGhost(),V({sortable:this,name:"start",originalEvent:e})):this._nulling()},_emulateDragOver:function(){if(dt){this._lastX=dt.clientX,this._lastY=dt.clientY,Xt();for(var t=document.elementFromPoint(dt.clientX,dt.clientY),e=t;t&&t.shadowRoot&&(t=t.shadowRoot.elementFromPoint(dt.clientX,dt.clientY))!==e;)e=t;if(Z.parentNode[K]._isOutsideThisEl(t),e)do{if(e[K])if(e[K]._onDragOver({clientX:dt.clientX,clientY:dt.clientY,target:t,rootEl:e})&&!this.options.dragoverBubble)break}while(e=g(t=e));Yt()}},_onTouchMove:function(t){if(ut){var e=this.options,n=e.fallbackTolerance,o=e.fallbackOffset,i=t.touches?t.touches[0]:t,r=Q&&b(Q,!0),a=Q&&r&&r.a,l=Q&&r&&r.d,e=At&&wt&&E(wt),a=(i.clientX-ut.clientX+o.x)/(a||1)+(e?e[0]-Tt[0]:0)/(a||1),l=(i.clientY-ut.clientY+o.y)/(l||1)+(e?e[1]-Tt[1]:0)/(l||1);if(!jt.active&&!Dt){if(n&&Math.max(Math.abs(i.clientX-this._lastX),Math.abs(i.clientY-this._lastY))<n)return;this._onDragStart(t,!0)}Q&&(r?(r.e+=a-(ht||0),r.f+=l-(pt||0)):r={a:1,b:0,c:0,d:1,e:a,f:l},r="matrix(".concat(r.a,",").concat(r.b,",").concat(r.c,",").concat(r.d,",").concat(r.e,",").concat(r.f,")"),R(Q,"webkitTransform",r),R(Q,"mozTransform",r),R(Q,"msTransform",r),R(Q,"transform",r),ht=a,pt=l,dt=i),t.cancelable&&t.preventDefault()}},_appendGhost:function(){if(!Q){var t=this.options.fallbackOnBody?document.body:J,e=X(Z,!0,At,!0,t),n=this.options;if(At){for(wt=t;"static"===R(wt,"position")&&"none"===R(wt,"transform")&&wt!==document;)wt=wt.parentNode;wt!==document.body&&wt!==document.documentElement?(wt===document&&(wt=O()),e.top+=wt.scrollTop,e.left+=wt.scrollLeft):wt=O(),Tt=E(wt)}k(Q=Z.cloneNode(!0),n.ghostClass,!1),k(Q,n.fallbackClass,!0),k(Q,n.dragClass,!0),R(Q,"transition",""),R(Q,"transform",""),R(Q,"box-sizing","border-box"),R(Q,"margin",0),R(Q,"top",e.top),R(Q,"left",e.left),R(Q,"width",e.width),R(Q,"height",e.height),R(Q,"opacity","0.8"),R(Q,"position",At?"absolute":"fixed"),R(Q,"zIndex","100000"),R(Q,"pointerEvents","none"),jt.ghost=Q,t.appendChild(Q),R(Q,"transform-origin",ft/parseInt(Q.style.width)*100+"% "+gt/parseInt(Q.style.height)*100+"%")}},_onDragStart:function(t,e){var n=this,o=t.dataTransfer,i=n.options;U("dragStart",this,{evt:t}),jt.eventCanceled?this._onDrop():(U("setupClone",this),jt.eventCanceled||((nt=C(Z)).removeAttribute("id"),nt.draggable=!1,nt.style["will-change"]="",this._hideClone(),k(nt,this.options.chosenClass,!1),jt.clone=nt),n.cloneId=Wt(function(){U("clone",n),jt.eventCanceled||(n.options.removeCloneOnHide||J.insertBefore(nt,Z),n._hideClone(),V({sortable:n,name:"clone"}))}),e||k(Z,i.dragClass,!0),e?(Et=!0,n._loopId=setInterval(n._emulateDragOver,50)):(p(document,"mouseup",n._onDrop),p(document,"touchend",n._onDrop),p(document,"touchcancel",n._onDrop),o&&(o.effectAllowed="move",i.setData&&i.setData.call(n,o,Z)),h(document,"drop",n),R(Z,"transform","translateZ(0)")),Dt=!0,n._dragStartId=Wt(n._dragStarted.bind(n,e,t)),h(document,"selectstart",n),mt=!0,window.getSelection().removeAllRanges(),u&&R(document.body,"user-select","none"))},_onDragOver:function(n){var o,i,r,t,e,a=this.el,l=n.target,s=this.options,c=s.group,u=jt.active,d=st===c,h=s.sort,p=ct||u,f=this,g=!1;if(!xt){if(void 0!==n.preventDefault&&n.cancelable&&n.preventDefault(),l=P(l,s.draggable,a,!0),O("dragOver"),jt.eventCanceled)return g;if(Z.contains(n.target)||l.animated&&l.animatingX&&l.animatingY||f._ignoreWhileAnimating===l)return A(!1);if(Et=!1,u&&!s.disabled&&(d?h||(i=$!==J):ct===this||(this.lastPutMode=st.checkPull(this,u,Z,n))&&c.checkPut(this,u,Z,n))){if(r="vertical"===this._getDirection(n,l),o=X(Z),O("dragOverValid"),jt.eventCanceled)return g;if(i)return $=J,M(),this._hideClone(),O("revert"),jt.eventCanceled||(tt?J.insertBefore(Z,tt):J.appendChild(Z)),A(!0);var m=F(a,s.draggable);if(m&&(S=n,c=r,x=X(F((E=this).el,E.options.draggable)),E=L(E.el,E.options,Q),!(c?S.clientX>E.right+10||S.clientY>x.bottom&&S.clientX>x.left:S.clientY>E.bottom+10||S.clientX>x.right&&S.clientY>x.top)||m.animated)){if(m&&(t=n,e=r,C=X(B((_=this).el,0,_.options,!0)),_=L(_.el,_.options,Q),e?t.clientX<_.left-10||t.clientY<C.top&&t.clientX<C.right:t.clientY<_.top-10||t.clientY<C.bottom&&t.clientX<C.left)){var v=B(a,0,s,!0);if(v===Z)return A(!1);if(D=X(l=v),!1!==Ht(J,a,Z,o,l,D,n,!1))return M(),a.insertBefore(Z,v),$=a,N(),A(!0)}else if(l.parentNode===a){var b,y,w,D=X(l),E=Z.parentNode!==a,S=(S=Z.animated&&Z.toRect||o,x=l.animated&&l.toRect||D,_=(e=r)?S.left:S.top,t=e?S.right:S.bottom,C=e?S.width:S.height,v=e?x.left:x.top,S=e?x.right:x.bottom,x=e?x.width:x.height,!(_===v||t===S||_+C/2===v+x/2)),_=r?"top":"left",C=Y(l,"top","top")||Y(Z,"top","top"),v=C?C.scrollTop:void 0;if(vt!==l&&(y=D[_],_t=!1,Ct=!S&&s.invertSwap||E),0!==(b=function(t,e,n,o,i,r,a,l){var s=o?t.clientY:t.clientX,c=o?n.height:n.width,t=o?n.top:n.left,o=o?n.bottom:n.right,n=!1;if(!a)if(l&&yt<c*i){if(_t=!_t&&(1===bt?t+c*r/2<s:s<o-c*r/2)?!0:_t)n=!0;else if(1===bt?s<t+yt:o-yt<s)return-bt}else if(t+c*(1-i)/2<s&&s<o-c*(1-i)/2)return function(t){return j(Z)<j(t)?1:-1}(e);if((n=n||a)&&(s<t+c*r/2||o-c*r/2<s))return t+c/2<s?1:-1;return 0}(n,l,D,r,S?1:s.swapThreshold,null==s.invertedSwapThreshold?s.swapThreshold:s.invertedSwapThreshold,Ct,vt===l)))for(var T=j(Z);(w=$.children[T-=b])&&("none"===R(w,"display")||w===Q););if(0===b||w===l)return A(!1);bt=b;var x=(vt=l).nextElementSibling,E=!1,S=Ht(J,a,Z,o,l,D,n,E=1===b);if(!1!==S)return 1!==S&&-1!==S||(E=1===S),xt=!0,setTimeout(Kt,30),M(),E&&!x?a.appendChild(Z):l.parentNode.insertBefore(Z,E?x:l),C&&H(C,0,v-C.scrollTop),$=Z.parentNode,void 0===y||Ct||(yt=Math.abs(y-X(l)[_])),N(),A(!0)}}else{if(m===Z)return A(!1);if((l=m&&a===n.target?m:l)&&(D=X(l)),!1!==Ht(J,a,Z,o,l,D,n,!!l))return M(),m&&m.nextSibling?a.insertBefore(Z,m.nextSibling):a.appendChild(Z),$=a,N(),A(!0)}if(a.contains(Z))return A(!1)}return!1}function O(t,e){U(t,f,I({evt:n,isOwner:d,axis:r?"vertical":"horizontal",revert:i,dragRect:o,targetRect:D,canSort:h,fromSortable:p,target:l,completed:A,onMove:function(t,e){return Ht(J,a,Z,o,t,X(t),n,e)},changed:N},e))}function M(){O("dragOverAnimationCapture"),f.captureAnimationState(),f!==p&&p.captureAnimationState()}function A(t){return O("dragOverCompleted",{insertion:t}),t&&(d?u._hideClone():u._showClone(f),f!==p&&(k(Z,(ct||u).options.ghostClass,!1),k(Z,s.ghostClass,!0)),ct!==f&&f!==jt.active?ct=f:f===jt.active&&ct&&(ct=null),p===f&&(f._ignoreWhileAnimating=l),f.animateAll(function(){O("dragOverAnimationComplete"),f._ignoreWhileAnimating=null}),f!==p&&(p.animateAll(),p._ignoreWhileAnimating=null)),(l===Z&&!Z.animated||l===a&&!l.animated)&&(vt=null),s.dragoverBubble||n.rootEl||l===document||(Z.parentNode[K]._isOutsideThisEl(n.target),t||Bt(n)),!s.dragoverBubble&&n.stopPropagation&&n.stopPropagation(),g=!0}function N(){rt=j(Z),lt=j(Z,s.draggable),V({sortable:f,name:"change",toEl:a,newIndex:rt,newDraggableIndex:lt,originalEvent:n})}},_ignoreWhileAnimating:null,_offMoveEvents:function(){p(document,"mousemove",this._onTouchMove),p(document,"touchmove",this._onTouchMove),p(document,"pointermove",this._onTouchMove),p(document,"dragover",Bt),p(document,"mousemove",Bt),p(document,"touchmove",Bt)},_offUpEvents:function(){var t=this.el.ownerDocument;p(t,"mouseup",this._onDrop),p(t,"touchend",this._onDrop),p(t,"pointerup",this._onDrop),p(t,"pointercancel",this._onDrop),p(t,"touchcancel",this._onDrop),p(document,"selectstart",this)},_onDrop:function(t){var e=this.el,n=this.options;rt=j(Z),lt=j(Z,n.draggable),U("drop",this,{evt:t}),$=Z&&Z.parentNode,rt=j(Z),lt=j(Z,n.draggable),jt.eventCanceled||(_t=Ct=Dt=!1,clearInterval(this._loopId),clearTimeout(this._dragStartTimer),zt(this.cloneId),zt(this._dragStartId),this.nativeDraggable&&(p(document,"drop",this),p(e,"dragstart",this._onDragStart)),this._offMoveEvents(),this._offUpEvents(),u&&R(document.body,"user-select",""),R(Z,"transform",""),t&&(mt&&(t.cancelable&&t.preventDefault(),n.dropBubble||t.stopPropagation()),Q&&Q.parentNode&&Q.parentNode.removeChild(Q),(J===$||ct&&"clone"!==ct.lastPutMode)&&nt&&nt.parentNode&&nt.parentNode.removeChild(nt),Z&&(this.nativeDraggable&&p(Z,"dragend",this),Lt(Z),Z.style["will-change"]="",mt&&!Dt&&k(Z,(ct||this).options.ghostClass,!1),k(Z,this.options.chosenClass,!1),V({sortable:this,name:"unchoose",toEl:$,newIndex:null,newDraggableIndex:null,originalEvent:t}),J!==$?(0<=rt&&(V({rootEl:$,name:"add",toEl:$,fromEl:J,originalEvent:t}),V({sortable:this,name:"remove",toEl:$,originalEvent:t}),V({rootEl:$,name:"sort",toEl:$,fromEl:J,originalEvent:t}),V({sortable:this,name:"sort",toEl:$,originalEvent:t})),ct&&ct.save()):rt!==it&&0<=rt&&(V({sortable:this,name:"update",toEl:$,originalEvent:t}),V({sortable:this,name:"sort",toEl:$,originalEvent:t})),jt.active&&(null!=rt&&-1!==rt||(rt=it,lt=at),V({sortable:this,name:"end",toEl:$,originalEvent:t}),this.save())))),this._nulling()},_nulling:function(){U("nulling",this),J=Z=$=Q=tt=nt=et=ot=ut=dt=mt=rt=lt=it=at=vt=bt=ct=st=jt.dragged=jt.ghost=jt.clone=jt.active=null,Ot.forEach(function(t){t.checked=!0}),Ot.length=ht=pt=0},handleEvent:function(t){switch(t.type){case"drop":case"dragend":this._onDrop(t);break;case"dragenter":case"dragover":Z&&(this._onDragOver(t),function(t){t.dataTransfer&&(t.dataTransfer.dropEffect="move");t.cancelable&&t.preventDefault()}(t));break;case"selectstart":t.preventDefault()}},toArray:function(){for(var t,e=[],n=this.el.children,o=0,i=n.length,r=this.options;o<i;o++)P(t=n[o],r.draggable,this.el,!1)&&e.push(t.getAttribute(r.dataIdAttr)||function(t){var e=t.tagName+t.className+t.src+t.href+t.textContent,n=e.length,o=0;for(;n--;)o+=e.charCodeAt(n);return o.toString(36)}(t));return e},sort:function(t,e){var n={},o=this.el;this.toArray().forEach(function(t,e){e=o.children[e];P(e,this.options.draggable,o,!1)&&(n[t]=e)},this),e&&this.captureAnimationState(),t.forEach(function(t){n[t]&&(o.removeChild(n[t]),o.appendChild(n[t]))}),e&&this.animateAll()},save:function(){var t=this.options.store;t&&t.set&&t.set(this)},closest:function(t,e){return P(t,e||this.options.draggable,this.el,!1)},option:function(t,e){var n=this.options;if(void 0===e)return n[t];var o=z.modifyOption(this,t,e);n[t]=void 0!==o?o:e,"group"===t&&Rt(n)},destroy:function(){U("destroy",this);var t=this.el;t[K]=null,p(t,"mousedown",this._onTapStart),p(t,"touchstart",this._onTapStart),p(t,"pointerdown",this._onTapStart),this.nativeDraggable&&(p(t,"dragover",this),p(t,"dragenter",this)),Array.prototype.forEach.call(t.querySelectorAll("[draggable]"),function(t){t.removeAttribute("draggable")}),this._onDrop(),this._disableDelayedDragEvents(),St.splice(St.indexOf(this.el),1),this.el=t=null},_hideClone:function(){ot||(U("hideClone",this),jt.eventCanceled||(R(nt,"display","none"),this.options.removeCloneOnHide&&nt.parentNode&&nt.parentNode.removeChild(nt),ot=!0))},_showClone:function(t){"clone"===t.lastPutMode?ot&&(U("showClone",this),jt.eventCanceled||(Z.parentNode!=J||this.options.group.revertClone?tt?J.insertBefore(nt,tt):J.appendChild(nt):J.insertBefore(nt,Z),this.options.group.revertClone&&this.animate(Z,nt),R(nt,"display",""),ot=!1)):this._hideClone()}},Mt&&h(document,"touchmove",function(t){(jt.active||Dt)&&t.cancelable&&t.preventDefault()}),jt.utils={on:h,off:p,css:R,find:D,is:function(t,e){return!!P(t,e,t,!1)},extend:function(t,e){if(t&&e)for(var n in e)e.hasOwnProperty(n)&&(t[n]=e[n]);return t},throttle:_,closest:P,toggleClass:k,clone:C,index:j,nextTick:Wt,cancelNextTick:zt,detectDirection:kt,getChild:B,expando:K},jt.get=function(t){return t[K]},jt.mount=function(){for(var t=arguments.length,e=new Array(t),n=0;n<t;n++)e[n]=arguments[n];(e=e[0].constructor===Array?e[0]:e).forEach(function(t){if(!t.prototype||!t.prototype.constructor)throw"Sortable: Mounted plugin must be a constructor function, not ".concat({}.toString.call(t));t.utils&&(jt.utils=I(I({},jt.utils),t.utils)),z.mount(t)})},jt.create=function(t,e){return new jt(t,e)};var Gt,Ut,qt,Vt,Zt,$t,Qt=[],Jt=!(jt.version="1.15.6");function te(){Qt.forEach(function(t){clearInterval(t.pid)}),Qt=[]}function ee(){clearInterval($t)}var ne,oe=_(function(n,t,e,o){if(t.scroll){var i,r=(n.touches?n.touches[0]:n).clientX,a=(n.touches?n.touches[0]:n).clientY,l=t.scrollSensitivity,s=t.scrollSpeed,c=O(),u=!1;Ut!==e&&(Ut=e,te(),Gt=t.scroll,i=t.scrollFn,!0===Gt&&(Gt=M(e,!0)));var d=0,h=Gt;do{var p=h,f=X(p),g=f.top,m=f.bottom,v=f.left,b=f.right,y=f.width,w=f.height,D=void 0,E=void 0,S=p.scrollWidth,_=p.scrollHeight,C=R(p),T=p.scrollLeft,f=p.scrollTop,E=p===c?(D=y<S&&("auto"===C.overflowX||"scroll"===C.overflowX||"visible"===C.overflowX),w<_&&("auto"===C.overflowY||"scroll"===C.overflowY||"visible"===C.overflowY)):(D=y<S&&("auto"===C.overflowX||"scroll"===C.overflowX),w<_&&("auto"===C.overflowY||"scroll"===C.overflowY)),T=D&&(Math.abs(b-r)<=l&&T+y<S)-(Math.abs(v-r)<=l&&!!T),f=E&&(Math.abs(m-a)<=l&&f+w<_)-(Math.abs(g-a)<=l&&!!f);if(!Qt[d])for(var x=0;x<=d;x++)Qt[x]||(Qt[x]={});Qt[d].vx==T&&Qt[d].vy==f&&Qt[d].el===p||(Qt[d].el=p,Qt[d].vx=T,Qt[d].vy=f,clearInterval(Qt[d].pid),0==T&&0==f||(u=!0,Qt[d].pid=setInterval(function(){o&&0===this.layer&&jt.active._onTouchMove(Zt);var t=Qt[this.layer].vy?Qt[this.layer].vy*s:0,e=Qt[this.layer].vx?Qt[this.layer].vx*s:0;"function"==typeof i&&"continue"!==i.call(jt.dragged.parentNode[K],e,t,n,Zt,Qt[this.layer].el)||H(Qt[this.layer].el,e,t)}.bind({layer:d}),24))),d++}while(t.bubbleScroll&&h!==c&&(h=M(h,!1)));Jt=u}},30),n=function(t){var e=t.originalEvent,n=t.putSortable,o=t.dragEl,i=t.activeSortable,r=t.dispatchSortableEvent,a=t.hideGhostForTarget,t=t.unhideGhostForTarget;e&&(i=n||i,a(),e=e.changedTouches&&e.changedTouches.length?e.changedTouches[0]:e,e=document.elementFromPoint(e.clientX,e.clientY),t(),i&&!i.el.contains(e)&&(r("spill"),this.onSpill({dragEl:o,putSortable:n})))};function ie(){}function re(){}ie.prototype={startIndex:null,dragStart:function(t){t=t.oldDraggableIndex;this.startIndex=t},onSpill:function(t){var e=t.dragEl,n=t.putSortable;this.sortable.captureAnimationState(),n&&n.captureAnimationState();t=B(this.sortable.el,this.startIndex,this.options);t?this.sortable.el.insertBefore(e,t):this.sortable.el.appendChild(e),this.sortable.animateAll(),n&&n.animateAll()},drop:n},a(ie,{pluginName:"revertOnSpill"}),re.prototype={onSpill:function(t){var e=t.dragEl,t=t.putSortable||this.sortable;t.captureAnimationState(),e.parentNode&&e.parentNode.removeChild(e),t.animateAll()},drop:n},a(re,{pluginName:"removeOnSpill"});var ae,le,se,ce,ue,de=[],he=[],pe=!1,fe=!1,ge=!1;function me(n,o){he.forEach(function(t,e){e=o.children[t.sortableIndex+(n?Number(e):0)];e?o.insertBefore(t,e):o.appendChild(t)})}function ve(){de.forEach(function(t){t!==se&&t.parentNode&&t.parentNode.removeChild(t)})}return jt.mount(new function(){function t(){for(var t in this.defaults={scroll:!0,forceAutoScrollFallback:!1,scrollSensitivity:30,scrollSpeed:10,bubbleScroll:!0},this)"_"===t.charAt(0)&&"function"==typeof this[t]&&(this[t]=this[t].bind(this))}return t.prototype={dragStarted:function(t){t=t.originalEvent;this.sortable.nativeDraggable?h(document,"dragover",this._handleAutoScroll):this.options.supportPointer?h(document,"pointermove",this._handleFallbackAutoScroll):t.touches?h(document,"touchmove",this._handleFallbackAutoScroll):h(document,"mousemove",this._handleFallbackAutoScroll)},dragOverCompleted:function(t){t=t.originalEvent;this.options.dragOverBubble||t.rootEl||this._handleAutoScroll(t)},drop:function(){this.sortable.nativeDraggable?p(document,"dragover",this._handleAutoScroll):(p(document,"pointermove",this._handleFallbackAutoScroll),p(document,"touchmove",this._handleFallbackAutoScroll),p(document,"mousemove",this._handleFallbackAutoScroll)),ee(),te(),clearTimeout(m),m=void 0},nulling:function(){Zt=Ut=Gt=Jt=$t=qt=Vt=null,Qt.length=0},_handleFallbackAutoScroll:function(t){this._handleAutoScroll(t,!0)},_handleAutoScroll:function(e,n){var o,i=this,r=(e.touches?e.touches[0]:e).clientX,a=(e.touches?e.touches[0]:e).clientY,t=document.elementFromPoint(r,a);Zt=e,n||this.options.forceAutoScrollFallback||w||y||u?(oe(e,this.options,t,n),o=M(t,!0),!Jt||$t&&r===qt&&a===Vt||($t&&ee(),$t=setInterval(function(){var t=M(document.elementFromPoint(r,a),!0);t!==o&&(o=t,te()),oe(e,i.options,t,n)},10),qt=r,Vt=a)):this.options.bubbleScroll&&M(t,!0)!==O()?oe(e,this.options,M(t,!1),!1):te()}},a(t,{pluginName:"scroll",initializeByDefault:!0})}),jt.mount(re,ie),jt.mount(new function(){function t(){this.defaults={swapClass:"sortable-swap-highlight"}}return t.prototype={dragStart:function(t){t=t.dragEl;ne=t},dragOverValid:function(t){var e=t.completed,n=t.target,o=t.onMove,i=t.activeSortable,r=t.changed,a=t.cancel;i.options.swap&&(t=this.sortable.el,i=this.options,n&&n!==t&&(t=ne,ne=!1!==o(n)?(k(n,i.swapClass,!0),n):null,t&&t!==ne&&k(t,i.swapClass,!1)),r(),e(!0),a())},drop:function(t){var e,n,o=t.activeSortable,i=t.putSortable,r=t.dragEl,a=i||this.sortable,l=this.options;ne&&k(ne,l.swapClass,!1),ne&&(l.swap||i&&i.options.swap)&&r!==ne&&(a.captureAnimationState(),a!==o&&o.captureAnimationState(),n=ne,t=(e=r).parentNode,l=n.parentNode,t&&l&&!t.isEqualNode(n)&&!l.isEqualNode(e)&&(i=j(e),r=j(n),t.isEqualNode(l)&&i<r&&r++,t.insertBefore(n,t.children[i]),l.insertBefore(e,l.children[r])),a.animateAll(),a!==o&&o.animateAll())},nulling:function(){ne=null}},a(t,{pluginName:"swap",eventProperties:function(){return{swapItem:ne}}})}),jt.mount(new function(){function t(o){for(var t in this)"_"===t.charAt(0)&&"function"==typeof this[t]&&(this[t]=this[t].bind(this));o.options.avoidImplicitDeselect||(o.options.supportPointer?h(document,"pointerup",this._deselectMultiDrag):(h(document,"mouseup",this._deselectMultiDrag),h(document,"touchend",this._deselectMultiDrag))),h(document,"keydown",this._checkKeyDown),h(document,"keyup",this._checkKeyUp),this.defaults={selectedClass:"sortable-selected",multiDragKey:null,avoidImplicitDeselect:!1,setData:function(t,e){var n="";de.length&&le===o?de.forEach(function(t,e){n+=(e?", ":"")+t.textContent}):n=e.textContent,t.setData("Text",n)}}}return t.prototype={multiDragKeyDown:!1,isMultiDrag:!1,delayStartGlobal:function(t){t=t.dragEl;se=t},delayEnded:function(){this.isMultiDrag=~de.indexOf(se)},setupClone:function(t){var e=t.sortable,t=t.cancel;if(this.isMultiDrag){for(var n=0;n<de.length;n++)he.push(C(de[n])),he[n].sortableIndex=de[n].sortableIndex,he[n].draggable=!1,he[n].style["will-change"]="",k(he[n],this.options.selectedClass,!1),de[n]===se&&k(he[n],this.options.chosenClass,!1);e._hideClone(),t()}},clone:function(t){var e=t.sortable,n=t.rootEl,o=t.dispatchSortableEvent,t=t.cancel;this.isMultiDrag&&(this.options.removeCloneOnHide||de.length&&le===e&&(me(!0,n),o("clone"),t()))},showClone:function(t){var e=t.cloneNowShown,n=t.rootEl,t=t.cancel;this.isMultiDrag&&(me(!1,n),he.forEach(function(t){R(t,"display","")}),e(),ue=!1,t())},hideClone:function(t){var e=this,n=(t.sortable,t.cloneNowHidden),t=t.cancel;this.isMultiDrag&&(he.forEach(function(t){R(t,"display","none"),e.options.removeCloneOnHide&&t.parentNode&&t.parentNode.removeChild(t)}),n(),ue=!0,t())},dragStartGlobal:function(t){t.sortable;!this.isMultiDrag&&le&&le.multiDrag._deselectMultiDrag(),de.forEach(function(t){t.sortableIndex=j(t)}),de=de.sort(function(t,e){return t.sortableIndex-e.sortableIndex}),ge=!0},dragStarted:function(t){var e,n=this,t=t.sortable;this.isMultiDrag&&(this.options.sort&&(t.captureAnimationState(),this.options.animation&&(de.forEach(function(t){t!==se&&R(t,"position","absolute")}),e=X(se,!1,!0,!0),de.forEach(function(t){t!==se&&T(t,e)}),pe=fe=!0)),t.animateAll(function(){pe=fe=!1,n.options.animation&&de.forEach(function(t){x(t)}),n.options.sort&&ve()}))},dragOver:function(t){var e=t.target,n=t.completed,t=t.cancel;fe&&~de.indexOf(e)&&(n(!1),t())},revert:function(t){var n,o,e=t.fromSortable,i=t.rootEl,r=t.sortable,a=t.dragRect;1<de.length&&(de.forEach(function(t){r.addAnimationState({target:t,rect:fe?X(t):a}),x(t),t.fromRect=a,e.removeAnimationState(t)}),fe=!1,n=!this.options.removeCloneOnHide,o=i,de.forEach(function(t,e){e=o.children[t.sortableIndex+(n?Number(e):0)];e?o.insertBefore(t,e):o.appendChild(t)}))},dragOverCompleted:function(t){var e,n=t.sortable,o=t.isOwner,i=t.insertion,r=t.activeSortable,a=t.parentEl,l=t.putSortable,t=this.options;i&&(o&&r._hideClone(),pe=!1,t.animation&&1<de.length&&(fe||!o&&!r.options.sort&&!l)&&(e=X(se,!1,!0,!0),de.forEach(function(t){t!==se&&(T(t,e),a.appendChild(t))}),fe=!0),o||(fe||ve(),1<de.length?(o=ue,r._showClone(n),r.options.animation&&!ue&&o&&he.forEach(function(t){r.addAnimationState({target:t,rect:ce}),t.fromRect=ce,t.thisAnimationDuration=null})):r._showClone(n)))},dragOverAnimationCapture:function(t){var e=t.dragRect,n=t.isOwner,t=t.activeSortable;de.forEach(function(t){t.thisAnimationDuration=null}),t.options.animation&&!n&&t.multiDrag.isMultiDrag&&(ce=a({},e),e=b(se,!0),ce.top-=e.f,ce.left-=e.e)},dragOverAnimationComplete:function(){fe&&(fe=!1,ve())},drop:function(t){var o,i,r,a,n,e,l,s=t.originalEvent,c=t.rootEl,u=t.parentEl,d=t.sortable,h=t.dispatchSortableEvent,p=t.oldIndex,t=t.putSortable,f=t||this.sortable;s&&(o=this.options,i=u.children,ge||(o.multiDragKey&&!this.multiDragKeyDown&&this._deselectMultiDrag(),k(se,o.selectedClass,!~de.indexOf(se)),~de.indexOf(se)?(de.splice(de.indexOf(se),1),ae=null,G({sortable:d,rootEl:c,name:"deselect",targetEl:se,originalEvent:s})):(de.push(se),G({sortable:d,rootEl:c,name:"select",targetEl:se,originalEvent:s}),s.shiftKey&&ae&&d.el.contains(ae)?(r=j(ae),a=j(se),~r&&~a&&r!==a&&function(){for(var e,t=r<a?(e=r,a):(e=a,r+1),n=o.filter;e<t;e++)~de.indexOf(i[e])||P(i[e],o.draggable,u,!1)&&(n&&("function"==typeof n?n.call(d,s,i[e],d):n.split(",").some(function(t){return P(i[e],t.trim(),u,!1)}))||(k(i[e],o.selectedClass,!0),de.push(i[e]),G({sortable:d,rootEl:c,name:"select",targetEl:i[e],originalEvent:s})))}()):ae=se,le=f)),ge&&this.isMultiDrag&&(fe=!1,(u[K].options.sort||u!==c)&&1<de.length&&(n=X(se),e=j(se,":not(."+this.options.selectedClass+")"),!pe&&o.animation&&(se.thisAnimationDuration=null),f.captureAnimationState(),pe||(o.animation&&(se.fromRect=n,de.forEach(function(t){var e;t.thisAnimationDuration=null,t!==se&&(e=fe?X(t):n,t.fromRect=e,f.addAnimationState({target:t,rect:e}))})),ve(),de.forEach(function(t){i[e]?u.insertBefore(t,i[e]):u.appendChild(t),e++}),p===j(se)&&(l=!1,de.forEach(function(t){t.sortableIndex!==j(t)&&(l=!0)}),l&&(h("update"),h("sort")))),de.forEach(function(t){x(t)}),f.animateAll()),le=f),(c===u||t&&"clone"!==t.lastPutMode)&&he.forEach(function(t){t.parentNode&&t.parentNode.removeChild(t)}))},nullingGlobal:function(){this.isMultiDrag=ge=!1,he.length=0},destroyGlobal:function(){this._deselectMultiDrag(),p(document,"pointerup",this._deselectMultiDrag),p(document,"mouseup",this._deselectMultiDrag),p(document,"touchend",this._deselectMultiDrag),p(document,"keydown",this._checkKeyDown),p(document,"keyup",this._checkKeyUp)},_deselectMultiDrag:function(t){if(!(void 0!==ge&&ge||le!==this.sortable||t&&P(t.target,this.options.draggable,this.sortable.el,!1)||t&&0!==t.button))for(;de.length;){var e=de[0];k(e,this.options.selectedClass,!1),de.shift(),G({sortable:this.sortable,rootEl:this.sortable.el,name:"deselect",targetEl:e,originalEvent:t})}},_checkKeyDown:function(t){t.key===this.options.multiDragKey&&(this.multiDragKeyDown=!0)},_checkKeyUp:function(t){t.key===this.options.multiDragKey&&(this.multiDragKeyDown=!1)}},a(t,{pluginName:"multiDrag",utils:{select:function(t){var e=t.parentNode[K];e&&e.options.multiDrag&&!~de.indexOf(t)&&(le&&le!==e&&(le.multiDrag._deselectMultiDrag(),le=e),k(t,e.options.selectedClass,!0),de.push(t))},deselect:function(t){var e=t.parentNode[K],n=de.indexOf(t);e&&e.options.multiDrag&&~n&&(k(t,e.options.selectedClass,!1),de.splice(n,1))}},eventProperties:function(){var n=this,o=[],i=[];return de.forEach(function(t){var e;o.push({multiDragElement:t,index:t.sortableIndex}),e=fe&&t!==se?-1:fe?j(t,":not(."+n.options.selectedClass+")"):j(t),i.push({multiDragElement:t,index:e})}),{items:r(de),clones:[].concat(he),oldIndicies:o,newIndicies:i}},optionListeners:{multiDragKey:function(t){return"ctrl"===(t=t.toLowerCase())?t="Control":1<t.length&&(t=t.charAt(0).toUpperCase()+t.substr(1)),t}}})}),jt});
+</script>
+<script>
+window.SALES_SAMPLE = {"sample": true, "kpis": {"open_pipeline": 8020000, "weighted_forecast": 3881000, "created_this_quarter": 2940000, "closing_this_month": 810000, "win_rate": 47, "average_won_deal": 63881}, "pipeline_by_stage": [{"label": "Intake", "value": 640000, "deals": 9}, {"label": "RFQ", "value": 1480000, "deals": 14}, {"label": "Quoting", "value": 1920000, "deals": 11}, {"label": "Quote Complete", "value": 980000, "deals": 6}, {"label": "Submitted", "value": 2240000, "deals": 8}, {"label": "Order Review", "value": 760000, "deals": 3}], "close_months": {"categories": ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr"], "series": [{"name": "Commit", "values": [520000, 610000, 280000, 140000, 90000, 0]}, {"name": "Best case", "values": [210000, 430000, 520000, 380000, 240000, 120000]}, {"name": "Pipeline", "values": [80000, 260000, 640000, 830000, 920000, 1180000]}]}, "forecast_vs_actual": {"categories": ["Q4 2025", "Q1 2026", "Q2 2026", "Q3 2026"], "series": [{"name": "Forecast", "values": [1800000, 2100000, 2300000, 2250000]}, {"name": "Actual", "values": [1640000, 2260000, 2090000, 2410000]}]}, "closed": {"categories": ["May", "Jun", "Jul", "Aug", "Sep", "Oct"], "series": [{"name": "Won", "values": [620000, 710000, 540000, 820000, 760000, 830000]}, {"name": "Lost", "values": [380000, 290000, 460000, 310000, 420000, 270000]}]}, "win_rate_by_rep": [{"label": "Rep A", "value": 52, "deals": 40}, {"label": "Rep B", "value": 44, "deals": 39}, {"label": "Rep C", "value": 56, "deals": 25}, {"label": "Rep D", "value": 36, "deals": 25}, {"label": "Rep E", "value": 46, "deals": 13}], "pipeline_history": {"categories": ["May", "Jun", "Jul", "Aug", "Sep", "Oct"], "values": [6100000, 6450000, 6300000, 6900000, 7250000, 8020000]}, "lost_by_stage": [{"label": "Intake", "value": 7}, {"label": "RFQ", "value": 12}, {"label": "Quoting", "value": 9}, {"label": "Quote Complete", "value": 4}, {"label": "Submitted", "value": 16}, {"label": "Order Review", "value": 2}], "top_accounts": [{"label": "Northwind Fluid", "value": 1720000}, {"label": "Contoso Hydraulics", "value": 1390000}, {"label": "Fabrikam Motion", "value": 1160000}, {"label": "Tailspin Medical", "value": 870000}, {"label": "Internal cost check", "value": 440000}], "stale": [{"deal": "Pump shaft program", "account": "Contoso Hydraulics", "owner": "Rep A", "stage": "Submitted", "value": 410000, "days": 46}, {"deal": "Manifold family", "account": "Northwind Fluid", "owner": "Rep B", "stage": "Submitted", "value": 365000, "days": 38}, {"deal": "Valve spool", "account": "Tailspin Medical", "owner": "Rep D", "stage": "Quoting", "value": 220000, "days": 33}, {"deal": "Connector body", "account": "Fabrikam Motion", "owner": "Rep C", "stage": "RFQ", "value": 145000, "days": 31}]};
+(function () {
+  const now = () => new Date().toISOString();
+  const ago = (d) => new Date(Date.now() - d * 864e5).toISOString();
+  const day = (d) => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
+  const users = [["Avery Bell","quoter"],["Carla Diaz","quoter"],["Ethan Ford","quoter"],["Sam Reed","sales"],["Maya Stone","sales"],["Demo Admin","admin"]]
+    .map(([n, role], i) => ({ id: i + 1, username: n.split(" ")[0].toLowerCase(), display_name: n, initials: n.split(" ").map((w) => w[0]).join(""), role, active: 1 }));
+  const S = (key, name, lane, kind, requires_owner) => ({ key, name, lane, kind, requires_owner, active: 1 });
+  const stages = [S("intake","Intake","engineering","hold",0),S("rfq","RFQ","engineering","open",0),S("quoting","Quoting","engineering","open",1),S("quote_complete","Quote Complete","engineering","open",1),S("submitted","Submitted","sales","open",0),S("order_review","Order Review","sales","open",0),S("won","Won","sales","won",0),S("lost","Lost","sales","lost",0)].map((s, i) => ({ ...s, id: i + 1, position: i }));
+  const reasons = ["Price","Lead time","Capability","No bid","Customer cancelled","Other"];
+  const sk = (k) => stages.find((s) => s.key === k);
+  const by = (id) => stages.find((s) => s.id === id);
+  const user = (id) => users.find((u) => u.id === id);
+  let quotes = [], handoffs = [], nextId = 1;
+  function add(title, customer, type, key, owner, days, due, extra = {}) {
+    const id = nextId++, s = sk(key);
+    const q = { id, quote_number: `Q-2026-${String(id).padStart(4, "0")}`, program_uid: `demo-${id}`, title, customer, work_type: type, stage_id: s.id, engineering_owner_id: owner, sales_owner_id: id % 2 ? 4 : 5, due_date: day(due), estimated_completion_date: day(due + [-2, 1, 0, 3, -1][id % 5]), sales_priority: null, key_deal: id % 5 === 0 ? 1 : 0, contact_name: `Contact ${id}`, contact_phone: `555-555-01${String(id).padStart(2, "0")}`, contact_email: `contact${id}@example.com`, documents: id % 4 === 0 ? [{ id: id * 100, filename: "print-rev-a.pdf", size_bytes: 482000, uploaded_at: ago(2), uploaded_by: "Demo Admin" }] : [], estimated_value: null, notes: "", missing_info: "", follow_up_owner_id: null, loss_reason: "", version: 1, created_at: ago(days + 4), stage_entered_at: ago(days), closed_at: ["won","lost"].includes(s.kind) ? ago(days) : null, parts: [{ part_number: `DEMO-${100 + id}`, annual_volume: 20000 + id * 5000, quoted_cycle_time_sec: 30 + id * 3, quoted_unit_price: null }],
+      history: key === "intake" ? [] : [{ created_at: ago(days), note: "", from_stage: "Intake", to_stage: s.name, user: "Demo Admin" }], ...extra };
+    q.history.push({ created_at: q.created_at, note: "Created", from_stage: null, to_stage: "Intake", user: "Demo Admin" });
+    quotes.push(q);
+  }
+  add("Sensor housing","Northwind Fluid","customer","rfq",null,10,8);
+  add("Injector sleeve family","Fabrikam Motion","customer","rfq",null,1,-1);
+  add("Pin cost check","Internal team","internal","rfq",null,3,9);
+  add("Pump shaft","Contoso Hydraulics","customer","rfq",1,6,-1);
+  add("Manifold block","Northwind Fluid","customer","rfq",2,8,12);
+  add("Valve spool","Tailspin Medical","customer","intake",3,1,11,{ missing_info: "Current print revision", follow_up_owner_id: 4 });
+  add("Connector body","Fabrikam Motion","customer","quoting",1,9,5);
+  add("Bushing cost check","Internal team","internal","quoting",2,0,10);
+  add("Actuator rod","Contoso Hydraulics","customer","quoting",2,6,15);
+  add("Fitting set","Tailspin Medical","customer","quote_complete",3,4,2);
+  add("Bearing retainer","Northwind Fluid","customer","submitted",1,9,15);
+  add("Gear blank","Fabrikam Motion","customer","order_review",2,1,16);
+  add("Nozzle tip","Contoso Hydraulics","customer","won",1,12,4);
+  add("Coupling hub","Tailspin Medical","customer","lost",3,10,6,{ loss_reason: "Price" });
+  add("Spindle nut","Northwind Fluid","customer","won",2,20,4);
+  function sync() {
+    [4, 5].forEach((owner) => {
+      const open = quotes.filter((q) => q.sales_owner_id === owner && ["open","hold"].includes(by(q.stage_id).kind)).sort((a, b) => (a.sales_priority ?? 999) - (b.sales_priority ?? 999) || a.id - b.id);
+      quotes.filter((q) => q.sales_owner_id === owner).forEach((q) => { q.sales_priority = null; });
+      open.forEach((q, i) => { q.sales_priority = i + 1; });
+    });
+    quotes.filter((q) => !q.sales_owner_id).forEach((q) => { q.sales_priority = null; });
+  }
+  sync();
+  const view = (q) => ({ ...q, engineering_owner_name: user(q.engineering_owner_id)?.display_name, engineering_owner_initials: user(q.engineering_owner_id)?.initials, sales_owner_name: user(q.sales_owner_id)?.display_name, sales_owner_initials: user(q.sales_owner_id)?.initials, follow_up_owner_name: user(q.follow_up_owner_id)?.display_name, part_count: q.parts.length, document_count: q.documents.length });
+  const rule = (m, field) => Object.assign(new Error(m), { status: 422, field });
+  function report() {
+    const open = quotes.filter((q) => ["open","hold"].includes(by(q.stage_id).kind));
+    const won = quotes.filter((q) => by(q.stage_id).kind === "won").length, lost = quotes.filter((q) => by(q.stage_id).kind === "lost").length;
+    const people = {};
+    open.forEach((q) => { const n = user(q.engineering_owner_id)?.display_name || "Unassigned"; const r = people[n] ||= { owner: n, total: 0, customer: 0, internal: 0, oldest_days: 0, quotes: [] };
+      r.total++; r[q.work_type]++; r.oldest_days = Math.max(r.oldest_days, (Date.now() - new Date(q.stage_entered_at)) / 864e5); r.quotes.push({ quote_number: q.quote_number, title: q.title, stage: by(q.stage_id).name }); });
+    const sales = {};
+    open.filter((q) => q.sales_owner_id && q.sales_priority).forEach((q) => { (sales[user(q.sales_owner_id).display_name] ||= []).push(q); });
+    const sales_priorities = Object.entries(sales).map(([owner, owned]) => { const priority = Math.min(...owned.map((q) => q.sales_priority));
+      return { owner, priority, quotes: owned.filter((q) => q.sales_priority === priority).map((q) => ({ quote_number: q.quote_number, title: q.title, customer: q.customer, key_deal: Boolean(q.key_deal) })) }; });
+    const loss = {}; quotes.forEach((q) => { if (q.loss_reason) loss[q.loss_reason] = (loss[q.loss_reason] || 0) + 1; });
+    return { open_total: open.length, unassigned: open.filter((q) => !q.engineering_owner_id).length, internal_open: open.filter((q) => q.work_type === "internal").length, won, lost, hit_rate: won + lost ? Math.round(won / (won + lost) * 100) : null, key_deals_open: open.filter((q) => q.key_deal).length, sales_priorities, median_turnaround_days: 4.5, kickbacks: quotes.filter((q) => q.history.some((h) => h.to_stage === "Intake" && h.from_stage)).length,
+      pipeline: stages.filter((s) => ["open","hold"].includes(s.kind)).map((s) => ({ stage: s.name, count: open.filter((q) => q.stage_id === s.id).length })),
+      stage_days: [{ stage: "Intake", median_days: 6 },{ stage: "RFQ", median_days: 1.5 },{ stage: "Quoting", median_days: 3.5 }],
+      workload: Object.values(people).sort((a, b) => (a.owner === "Unassigned") - (b.owner === "Unassigned") || b.total - a.total), loss_reasons: Object.entries(loss).map(([reason, count]) => ({ reason, count })) };
+  }
+  function move(q, b) {
+    if (q.version !== b.version) throw Object.assign(new Error("Someone else just changed this quote."), { status: 409 });
+    const from = by(q.stage_id), to = by(b.to_stage_id);
+    const owner = Number(b.engineering_owner_id) || q.engineering_owner_id;
+    if (to.requires_owner && !owner) throw rule(`Assign an owner before moving to ${to.name}.`, "engineering_owner_id");
+    const reopening = ["won","lost"].includes(from.kind) && !["won","lost"].includes(to.kind);
+    if (reopening && !b.note?.trim()) throw rule("Add a note saying why this quote is being reopened.", "note");
+    Object.assign(q, { stage_id: to.id, engineering_owner_id: owner, missing_info: to.kind === "hold" ? b.missing_info : "", follow_up_owner_id: to.kind === "hold" ? Number(b.follow_up_owner_id) : null, loss_reason: to.kind === "lost" ? b.loss_reason : "", stage_entered_at: now(), closed_at: ["won","lost"].includes(to.kind) ? now() : null, version: q.version + 1 });
+    q.history.unshift({ created_at: now(), note: b.note || "", from_stage: from.name, to_stage: to.name, user: "Demo Admin" });
+    if (to.kind === "won") handoffs.unshift({ status: "pending", event_type: "quote.won", created_at: now(), payload: { quote_number: q.quote_number, title: q.title } });
+    if (from.kind === "won") handoffs.unshift({ status: "pending", event_type: "quote.reopened", created_at: now(), payload: { quote_number: q.quote_number, title: q.title } });
+    sync();
+    return view(q);
+  }
+  window.demoApi = async function (method, path, body) {
+    const clone = (x) => JSON.parse(JSON.stringify(x));
+    const m = path.match(/^\/api\/quotes\/(\d+)(\/move)?$/);
+    const q = m && quotes.find((x) => x.id === Number(m[1]));
+    if (path === "/api/bootstrap") return clone({ me: users[5], users, stages: [...stages].sort((a, b) => a.position - b.position), loss_reasons: reasons, customers: [...new Set(quotes.map((x) => x.customer))].sort() });
+    if (path === "/api/quotes" && method === "GET") return clone([...quotes].sort((a, b) => b.stage_entered_at.localeCompare(a.stage_entered_at)).map(view));
+    if (path === "/api/quotes") { const id = nextId++; const n = { id, quote_number: `Q-2026-${String(id).padStart(4, "0")}`, program_uid: `demo-${id}`, documents: [], ...body, stage_id: 1, missing_info: "", follow_up_owner_id: null, loss_reason: "", version: 1, created_at: now(), stage_entered_at: now(), closed_at: null, history: [{ created_at: now(), note: "Created", from_stage: null, to_stage: "Intake", user: "Demo Admin" }] }; quotes.push(n); sync(); return clone(view(n)); }
+    const u = path.match(/^\/api\/quotes\/(\d+)\/documents$/);
+    if (u) { const doc = { id: Date.now(), filename: body.filename, size_bytes: body.size_bytes, uploaded_at: now(), uploaded_by: "Demo Admin" }; quotes.find((x) => x.id === Number(u[1])).documents.unshift(doc); return clone(doc); }
+    const d = path.match(/^\/api\/documents\/(\d+)$/);
+    if (d) { quotes.forEach((x) => { x.documents = x.documents.filter((doc) => doc.id !== Number(d[1])); }); return { ok: true }; }
+    if (m && m[2]) return clone(move(q, body));
+    if (m && method === "GET") return clone(view(q));
+    const o = path.match(/^\/api\/sales-priorities\/(\d+)$/);
+    if (o) { body.quote_ids.forEach((id, i) => { quotes.find((x) => x.id === id).sales_priority = i + 1; }); return { ok: true }; }
+    if (m) { const moved = q.sales_owner_id !== body.sales_owner_id; const rank = moved ? null : q.sales_priority; Object.assign(q, body, { sales_priority: rank, version: q.version + 1 }); sync(); return clone(view(q)); }
+    if (path === "/api/reports") return report();
+    if (path === "/api/sales-dashboard") return clone(window.SALES_SAMPLE);
+    if (path === "/api/handoffs") return clone(handoffs);
+    if (path === "/api/stages" || path.startsWith("/api/stages/") || path.startsWith("/api/users") || path === "/api/me/password") throw rule("Settings changes work in the installed app.");
+    return { ok: true };
+  };
+})();
+
+</script>
+<script>
+"use strict";
+/* The whole screen is rebuilt from `state`. Change state, call render(). */
+const state = { view: "board", me: null, users: [], stages: [], lossReasons: [], customers: [], quotes: [],
+                filter: { search: "", sales: "", engineering: "", type: "", preset: "all" }, layout: "board",
+                sort: { key: "due", direction: 1 }, dragging: false };
+
+const OLD_DAYS = 7;
+const app = document.getElementById("app");
+
+/* Builds a page element. Text always goes in as text, so typed data can't become HTML. */
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === false || value === null || value === undefined) continue;
+    if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else if (key === "class") node.className = value;
+    else if (key === "value") node.value = value;
+    else node.setAttribute(key, value === true ? "" : value);
+  }
+  node.append(...children.flat(Infinity).filter((c) => c !== null && c !== undefined && c !== false));
+  return node;
+}
+
+async function serverApi(method, path, body) {
+  const response = await fetch(path, {
+    method, headers: body ? { "Content-Type": "application/json" } : {},
+    body: body ? JSON.stringify(body) : undefined, credentials: "same-origin",
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.detail || "That didn't save. Check your connection and try again.");
+    error.status = response.status;
+    error.field = data.field;
+    throw error;
+  }
+  return data;
+}
+const api = window.demoApi || serverApi;  // the online demo swaps in a pretend server
+
+async function uploadFile(path, file) {
+  if (window.demoApi) return window.demoApi("POST", path, { filename: file.name, size_bytes: file.size });
+  const form = new FormData();
+  form.append("file", file);
+  const response = await fetch(path, { method: "POST", body: form, credentials: "same-origin" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw Object.assign(new Error(data.detail || "That file didn't upload. Try again."), { status: response.status });
+  return data;
+}
+
+function toast(message) {
+  const box = document.getElementById("toast");
+  box.replaceChildren(el("div", {}, message));
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => box.replaceChildren(), 4500);
+}
+
+const canEdit = () => state.me && state.me.role !== "viewer";
+const isAdmin = () => state.me && state.me.role === "admin";
+const activeUsers = () => state.users.filter((u) => u.active);
+const stageById = (id) => state.stages.find((s) => s.id === id);
+const daysSince = (ts) => Math.floor((Date.now() - new Date(ts).getTime()) / 86400000);
+const today = () => new Date().toISOString().slice(0, 10);
+const shortDate = (d) => new Date(d + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+const dateTime = (ts) => new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+const numberOrNull = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
+
+function options(items, selected, blank) {
+  return [
+    blank !== undefined && el("option", { value: "" }, blank),
+    ...items.map(([value, text]) => {
+      const option = el("option", { value }, text);
+      if (String(value) === String(selected ?? "")) option.selected = true;
+      return option;
+    }),
+  ];
+}
+const userOptions = (selected, blank) => options(activeUsers().map((u) => [u.id, u.display_name]), selected, blank);
+
+/* ---------- loading ---------- */
+async function loadAll() {
+  const boot = await api("GET", "/api/bootstrap");
+  Object.assign(state, { me: boot.me, users: boot.users, stages: boot.stages, lossReasons: boot.loss_reasons, customers: boot.customers });
+  state.quotes = await api("GET", "/api/quotes");
+}
+
+async function refresh() {
+  await loadAll();
+  render();
+}
+
+function handleError(error) {
+  if (error.status === 401) { state.me = null; renderLogin(); return; }
+  toast(error.message);
+  if (error.status === 409) refresh().catch(() => {});
+}
+
+/* ---------- login ---------- */
+function renderLogin() {
+  const message = el("div", { class: "error", role: "alert" });
+  const username = el("input", { autocomplete: "username", required: true, autofocus: true });
+  const password = el("input", { type: "password", autocomplete: "current-password", required: true });
+  document.body.classList.add("signed-out");
+  app.replaceChildren(el("main", { class: "login" }, el("form", {
+    onsubmit: async (event) => {
+      event.preventDefault();
+      message.textContent = "";
+      try {
+        await api("POST", "/api/login", { username: username.value, password: password.value });
+        await refresh();
+      } catch (error) { message.textContent = error.message; }
+    },
+  }, el("h1", {}, "Quote board"), el("label", {}, "Username", username), el("label", {}, "Password", password),
+     message, el("button", { class: "btn primary", type: "submit" }, "Sign in"))));
+}
+
+/* ---------- shell ---------- */
+function render() {
+  if (!state.me) return renderLogin();
+  const tabs = [["board", "Board"], ["report", "Report"], ["sales", "Sales"], isAdmin() && ["settings", "Settings"]].filter(Boolean);
+  if (state.view === "settings" && !isAdmin()) state.view = "board";
+  const nav = tabs.map(([view, text]) => el("button", {
+    "aria-current": state.view === view ? "page" : null,
+    onclick: () => { state.view = view; render(); },
+  }, text));
+  const top = el("header", { class: "topbar" }, el("h1", {}, "Quote board"), el("nav", { "aria-label": "Main" }, nav),
+    el("div", { class: "spacer" }),
+    canEdit() && el("button", { class: "btn", onclick: () => openQuote(null) }, "New quote"),
+    el("div", { class: "who" }, el("button", { class: "btn quiet", onclick: openPassword, title: "Change your password" }, state.me.display_name),
+      el("button", { class: "btn quiet", onclick: async () => { await api("POST", "/api/logout"); state.me = null; renderLogin(); } }, "Sign out")));
+  const page = { board: renderBoard, report: renderReport, sales: renderSales, settings: renderSettings }[state.view]();
+  app.replaceChildren(top, page);
+  if (state.view === "board") afterDraw();
+}
+
+/* ---------- board ---------- */
+const isOpen = (q) => ["open", "hold"].includes(stageById(q.stage_id).kind);
+
+const PRESETS = [
+  ["all", "All", () => true],
+  ["mine", "Mine", (q) => q.sales_owner_id === state.me.id || q.engineering_owner_id === state.me.id],
+  ["priorities", "Priority order", isOpen],
+  ["top", "Top priority", (q) => isOpen(q) && q.sales_priority === 1],
+  ["key", "Key deals", (q) => Boolean(q.key_deal)],
+  ["unassigned", "No engineer", (q) => isOpen(q) && !q.engineering_owner_id],
+  ["active", "Actively quoting", (q) => stageById(q.stage_id).key === "quoting"],
+  ["rfq", "In RFQ", (q) => stageById(q.stage_id).key === "rfq"],
+  ["internal", "Internal work", (q) => q.work_type === "internal"],
+];
+
+/* These two saved views have their own layouts, so Board and Table don't apply. */
+const specialView = () => ["priorities", "unassigned"].includes(state.filter.preset);
+
+function matchesFilters(q, ignorePreset = false) {
+  const f = state.filter;
+  const text = f.search.trim().toLowerCase();
+  if (text && !`${q.quote_number} ${q.title} ${q.customer} ${q.contact_name}`.toLowerCase().includes(text)) return false;
+  if (f.sales === "none" ? q.sales_owner_id : f.sales && String(q.sales_owner_id) !== f.sales) return false;
+  if (f.engineering === "none" ? q.engineering_owner_id : f.engineering && String(q.engineering_owner_id) !== f.engineering) return false;
+  if (f.type && q.work_type !== f.type) return false;
+  return ignorePreset || PRESETS.find((p) => p[0] === f.preset)[2](q);
+}
+
+const dayGap = (q) => (q.due_date && q.estimated_completion_date
+  ? Math.round((new Date(q.estimated_completion_date) - new Date(q.due_date)) / 86400000) : null);
+
+function ownerBadge(letter, role, initials, name) {
+  return el("span", { class: "owner", title: `${role}: ${name || "Unassigned"}`, "aria-label": `${role}: ${name || "Unassigned"}` },
+    el("span", { class: "owner-role" }, letter),
+    el("span", { class: `avatar${initials ? "" : " none"}` }, initials || "?"));
+}
+
+function tile(q) {
+  const age = daysSince(q.stage_entered_at);
+  const open = isOpen(q);
+  const late = q.due_date && q.due_date < today() && open;
+  const gap = dayGap(q);
+  const chips = [
+    q.sales_priority && el("span", { class: "chip", title: `Priority ${q.sales_priority} for ${q.sales_owner_name}` }, `P${q.sales_priority}`),
+    q.key_deal ? el("span", { class: "chip key" }, "Key deal") : null,
+    q.work_type === "internal" && el("span", { class: "chip" }, "Internal"),
+  ].filter(Boolean);
+  return el("button", {
+    class: `tile${q.work_type === "internal" ? " internal" : ""}${canEdit() ? "" : " readonly"}`,
+    "data-id": q.id, type: "button", onclick: () => openQuote(q.id),
+    "aria-label": `${q.quote_number}, ${q.title}, ${q.customer}`,
+  },
+    el("div", { class: "row top" }, el("span", { class: "number" }, q.quote_number),
+      el("div", { class: "dates" },
+        q.due_date && el("div", { class: `due${late ? " late" : ""}` }, `${late ? "Late" : "Due"} ${shortDate(q.due_date)}`),
+        q.estimated_completion_date && el("div", { class: `due${gap > 0 && open ? " slipping" : ""}` }, `Est ${shortDate(q.estimated_completion_date)}`))),
+    el("div", { class: "title" }, q.title),
+    el("div", { class: "customer" }, q.customer),
+    chips.length > 0 && el("div", { class: "chips" }, chips),
+    q.missing_info && el("p", { class: "missing" }, `Needs: ${q.missing_info}`),
+    el("div", { class: "row foot" },
+      el("span", { class: `age${age >= OLD_DAYS ? " old" : ""}`, title: `${age} days in this stage` }, `${age}d`),
+      el("span", { class: "owners" },
+        ownerBadge("S", "Sales owner", q.sales_owner_initials, q.sales_owner_name),
+        ownerBadge("E", "Engineering owner", q.engineering_owner_initials, q.engineering_owner_name))));
+}
+
+function column(stage) {
+  const quotes = state.quotes.filter((q) => q.stage_id === stage.id && matchesFilters(q));
+  return el("section", { class: "column", "aria-label": stage.name },
+    el("header", {}, el("h2", {}, stage.name), el("span", { class: "count" }, quotes.length)),
+    el("div", { class: `tiles${quotes.length ? "" : " empty"}`, "data-stage": stage.id }, quotes.map(tile)));
+}
+
+function renderBoard() {
+  const f = state.filter;
+  const update = (key) => (event) => { f[key] = event.target.value; render(); };
+  const search = el("input", { type: "search", value: f.search, placeholder: "Quote, title, customer, or contact",
+    oninput: (event) => { f.search = event.target.value; drawContent(); } });
+  const ownerChoices = [...activeUsers().map((u) => [u.id, u.display_name]), ["none", "Unassigned"]];
+  const filters = el("div", { class: "filters" },
+    !specialView() && el("div", { class: "views layout", role: "group", "aria-label": "Layout" }, [["board", "Board"], ["table", "Table"]].map(([key, text]) =>
+      el("button", { "aria-pressed": String(state.layout === key), onclick: () => { state.layout = key; render(); } }, text))),
+    el("label", { class: "search" }, "Search", search),
+    el("label", {}, "Sales owner", el("select", { onchange: update("sales") }, options(ownerChoices, f.sales, "Everyone"))),
+    el("label", {}, "Engineering owner", el("select", { onchange: update("engineering") }, options(ownerChoices, f.engineering, "Everyone"))),
+    el("label", {}, "Work type", el("select", { onchange: update("type") },
+      options([["customer", "Customer RFQ"], ["internal", "Internal work"]], f.type, "All"))),
+    el("div", { class: "views", role: "group", "aria-label": "Saved views" }, PRESETS.map(([key, text]) =>
+      el("button", { "aria-pressed": String(f.preset === key), onclick: () => { f.preset = key; render(); } }, text))));
+  return el("main", {}, filters, el("div", { class: "board-wrap" }, boardContent()));
+}
+
+function boardContent() {
+  if (state.filter.preset === "priorities") return buildPriorityLists();
+  if (state.filter.preset === "unassigned") return buildAssignments();
+  return state.layout === "table" ? buildTable() : buildColumns();
+}
+
+function afterDraw() {
+  if (state.filter.preset === "priorities") wireRanking();
+  else if (!specialView() && state.layout === "board") wireDragging();
+}
+
+function drawContent() {
+  document.querySelector(".board-wrap").replaceChildren(boardContent());
+  afterDraw();
+}
+
+const dateCell = (d) => (d ? shortDate(d) : "");
+const stageName = (q) => stageById(q.stage_id).name;
+
+/* Priority order: one ranked list per salesperson. */
+const canRank = (ownerId) => canEdit() && (isAdmin() || state.me.id === ownerId);
+
+async function saveOrder(ownerId, ids) {
+  try {
+    await api("PUT", `/api/sales-priorities/${ownerId}`, { quote_ids: ids });
+    toast("Priority order saved");
+  } catch (error) { handleError(error); }
+  await refresh().catch(() => {});
+}
+
+function buildPriorityLists() {
+  const open = state.quotes.filter((q) => matchesFilters(q));
+  const owners = [...new Map(open.filter((q) => q.sales_owner_id).map((q) => [q.sales_owner_id, q.sales_owner_name]))]
+    .sort((a, b) => (b[0] === state.me.id) - (a[0] === state.me.id) || a[1].localeCompare(b[1]));
+  const missing = open.filter((q) => !q.sales_owner_id).length;
+  const lists = owners.map(([ownerId, name]) => {
+    const quotes = open.filter((q) => q.sales_owner_id === ownerId).sort((a, b) => a.sales_priority - b.sales_priority);
+    const editable = canRank(ownerId);
+    const shift = (index, delta) => () => {
+      const ids = quotes.map((q) => q.id);
+      [ids[index], ids[index + delta]] = [ids[index + delta], ids[index]];
+      saveOrder(ownerId, ids);
+    };
+    const rows = quotes.map((q, index) => el("li", { class: `rank-row${editable ? " movable" : ""}`, "data-id": q.id },
+      el("span", { class: "rank" }, q.sales_priority),
+      el("div", { class: "rank-body" },
+        el("button", { class: "link", type: "button", onclick: () => openQuote(q.id) }, q.title),
+        el("div", { class: "rank-meta" }, `${q.quote_number}, ${q.customer}, ${stageName(q)}`),
+        el("div", { class: "rank-meta" }, [q.due_date && `Due ${shortDate(q.due_date)}`, q.estimated_completion_date && `Est ${shortDate(q.estimated_completion_date)}`].filter(Boolean).join(", ")),
+        q.key_deal ? el("div", { class: "chips" }, el("span", { class: "chip key" }, "Key deal")) : null),
+      editable && el("div", { class: "order" },
+        el("button", { class: "btn icon-btn", type: "button", "aria-label": `Move ${q.title} up`, disabled: index === 0, onclick: shift(index, -1) }, "↑"),
+        el("button", { class: "btn icon-btn", type: "button", "aria-label": `Move ${q.title} down`, disabled: index === quotes.length - 1, onclick: shift(index, 1) }, "↓"))));
+    return el("section", { class: "panel" }, el("h3", {}, name),
+      el("p", { class: "hint" }, editable ? "Drag quotes into order, highest priority first" : "Only this salesperson or an admin can change this order"),
+      el("ol", { class: "rank-list", "data-owner": ownerId }, rows));
+  });
+  if (!lists.length) return el("div", { class: "panel" }, el("p", { class: "empty-note" }, "Assign a sales owner to an open quote to start a priority list."));
+  return el("div", {}, missing > 0 && el("p", { class: "view-note" }, `${missing} open quote${missing === 1 ? " has" : "s have"} no sales owner, so ${missing === 1 ? "it isn't" : "they aren't"} ranked.`),
+    el("div", { class: "work-grid" }, lists));
+}
+
+function wireRanking() {
+  if (!window.Sortable) return;
+  document.querySelectorAll(".rank-list").forEach((list) => {
+    const ownerId = Number(list.dataset.owner);
+    if (!canRank(ownerId)) return;
+    Sortable.create(list, {
+      animation: 120, forceFallback: true, fallbackTolerance: 5, delay: 120, delayOnTouchOnly: true, filter: "button", preventOnFilter: false,
+      onStart: () => { state.dragging = true; },
+      onEnd: (event) => {
+        state.dragging = false;
+        if (event.oldIndex === event.newIndex) return;
+        saveOrder(ownerId, [...list.children].map((row) => Number(row.dataset.id)));
+      },
+    });
+  });
+}
+
+/* No engineer: quotes waiting for an engineer, with each engineer's current work below. */
+async function assignEngineer(quoteId, engineerId) {
+  try {
+    const quote = await api("GET", `/api/quotes/${quoteId}`);
+    await api("PATCH", `/api/quotes/${quoteId}`, { ...quote, engineering_owner_id: engineerId });
+    await refresh();
+    toast(`${quote.quote_number} assigned`);
+  } catch (error) { handleError(error); }
+}
+
+function quoteTable(quotes, firstColumn = null) {
+  const headers = ["Quote", "Title", "Customer", "Stage", "Priority", "Key deal", "Quote due", "Est. completion"];
+  return el("div", { class: "scroll" }, el("table", { class: "work-table" },
+    el("thead", {}, el("tr", {}, firstColumn && el("th", {}, firstColumn.title), headers.map((h) => el("th", {}, h)))),
+    el("tbody", {}, quotes.map((q) => el("tr", {}, firstColumn && el("td", {}, firstColumn.cell(q)),
+      el("td", {}, el("button", { class: "link", type: "button", onclick: () => openQuote(q.id) }, q.quote_number)),
+      el("td", {}, q.title), el("td", {}, q.customer), el("td", {}, stageName(q)),
+      el("td", {}, q.sales_priority ? `P${q.sales_priority}` : ""), el("td", {}, q.key_deal ? "Key deal" : ""),
+      el("td", {}, dateCell(q.due_date)), el("td", {}, dateCell(q.estimated_completion_date)))))));
+}
+
+const byDueDate = (a, b) => (a.due_date || "9999").localeCompare(b.due_date || "9999");
+
+function buildAssignments() {
+  const open = state.quotes.filter((q) => isOpen(q) && matchesFilters(q, true));
+  const waiting = open.filter((q) => !q.engineering_owner_id).sort(byDueDate);
+  const engineers = activeUsers().filter((u) => u.role === "quoter" || open.some((q) => q.engineering_owner_id === u.id));
+  const choices = (q) => el("select", {
+    "aria-label": `Assign an engineer to ${q.quote_number}`, disabled: !canEdit(),
+    onchange: (event) => { if (event.target.value) assignEngineer(q.id, Number(event.target.value)); },
+  }, options(engineers.map((u) => [u.id, u.display_name]), "", "Choose engineer"));
+  const load = engineers
+    .map((engineer) => ({ engineer, quotes: open.filter((q) => q.engineering_owner_id === engineer.id).sort(byDueDate) }))
+    .filter(({ engineer }) => !state.filter.engineering || String(engineer.id) === state.filter.engineering)
+    .sort((a, b) => a.quotes.length - b.quotes.length || a.engineer.display_name.localeCompare(b.engineer.display_name));
+  return el("div", {},
+    el("section", { class: "panel assign-panel" }, el("h3", {}, `Needs an engineer (${waiting.length})`),
+      waiting.length ? quoteTable(waiting, { title: "Assign", cell: choices }) : el("p", { class: "empty-note" }, "Every open quote has an engineer.")),
+    el("h3", { class: "section-title" }, "Current engineer workload"),
+    el("p", { class: "view-note" }, "Fewest open quotes first"),
+    el("div", { class: "work-grid wide" }, load.map(({ engineer, quotes }) => {
+      const quoting = quotes.filter((q) => stageById(q.stage_id).key === "quoting").length;
+      return el("section", { class: "panel" }, el("h3", {}, engineer.display_name),
+        el("p", { class: "hint" }, `${quotes.length} open, ${quoting} in Quoting`),
+        quotes.length ? quoteTable(quotes) : el("p", { class: "empty-note" }, "No open quotes"));
+    })));
+}
+
+/* Table view: each column says how to show a quote and how to sort it. Blanks sort last. */
+const TABLE_COLUMNS = [
+  ["number", "Quote", (q) => q.quote_number],
+  ["title", "Title", (q) => q.title],
+  ["customer", "Customer", (q) => q.customer],
+  ["stage", "Stage", (q) => stageById(q.stage_id).name, (q) => stageById(q.stage_id).position],
+  ["priority", "Priority", (q) => (q.sales_priority ? `P${q.sales_priority}` : ""), (q) => q.sales_priority],
+  ["key", "Key deal", (q) => (q.key_deal ? "Key deal" : ""), (q) => (q.key_deal ? 0 : null)],
+  ["sales", "Sales owner", (q) => q.sales_owner_name || ""],
+  ["engineering", "Engineering owner", (q) => q.engineering_owner_name || ""],
+  ["due", "Quote due", (q) => (q.due_date ? shortDate(q.due_date) : ""), (q) => q.due_date],
+  ["estimate", "Est. completion", (q) => (q.estimated_completion_date ? shortDate(q.estimated_completion_date) : ""), (q) => q.estimated_completion_date],
+  ["gap", "Est. vs due", (q) => { const g = dayGap(q); return g === null ? "" : g > 0 ? `${g}d late` : g < 0 ? `${-g}d early` : "On date"; }, dayGap],
+  ["contact", "Customer contact", (q) => q.contact_name || ""],
+  ["documents", "Documents", (q) => (q.document_count ? String(q.document_count) : ""), (q) => q.document_count || null],
+];
+
+function buildTable() {
+  const { key, direction } = state.sort;
+  const column = TABLE_COLUMNS.find((c) => c[0] === key);
+  const sortValue = column[3] || column[2];
+  const blank = (v) => v === null || v === undefined || v === "";
+  const rows = state.quotes.filter((q) => matchesFilters(q)).sort((a, b) => {
+    const x = sortValue(a), y = sortValue(b);
+    if (blank(x) || blank(y)) return blank(x) - blank(y);
+    return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * direction;
+  });
+  if (!rows.length) return el("div", { class: "panel" }, el("p", { class: "empty-note" }, "No quotes match these filters."));
+  const header = TABLE_COLUMNS.map(([id, label]) => el("th", { scope: "col", "aria-sort": id === key ? (direction > 0 ? "ascending" : "descending") : null },
+    el("button", { class: "sort", onclick: () => { state.sort = { key: id, direction: id === key ? -direction : 1 }; drawContent(); } },
+      `${label}${id === key ? (direction > 0 ? " ▲" : " ▼") : ""}`)));
+  const body = rows.map((q) => el("tr", {}, TABLE_COLUMNS.map(([id, , show], index) => {
+    const text = show(q);
+    if (index === 0) return el("td", {}, el("button", { class: "link", onclick: () => openQuote(q.id) }, text));
+    const slipping = id === "gap" && dayGap(q) > 0 && isOpen(q);
+    return el("td", { class: slipping ? "slipping" : "" }, text);
+  })));
+  return el("div", { class: "panel table-panel" }, el("div", { class: "scroll" },
+    el("table", { class: "quote-table" }, el("thead", {}, el("tr", {}, header)), el("tbody", {}, body))));
+}
+
+function buildColumns() {
+  const stages = state.stages.filter((s) => s.active);
+  const lane = (name, title) => {
+    const count = stages.filter((s) => s.lane === name).length;
+    if (!count) return null;
+    const label = el("div", { class: "lane-label" }, title);
+    label.style.gridColumn = `span ${count}`;
+    return label;
+  };
+  const board = el("div", { class: "board" }, lane("engineering", "Engineering"), lane("sales", "Sales"), stages.map(column));
+  stages.forEach((s, index) => { board.querySelectorAll(".column")[index].style.gridColumn = String(index + 1); });
+  return board;
+}
+
+function wireDragging() {
+  if (!canEdit() || !window.Sortable) return;
+  document.querySelectorAll(".tiles").forEach((list) => {
+    Sortable.create(list, {
+      group: "quotes", sort: false, animation: 120, forceFallback: true, fallbackTolerance: 5,
+      delay: 120, delayOnTouchOnly: true,
+      onStart: () => { state.dragging = true; document.body.classList.add("dragging"); },
+      onEnd: (event) => {
+        state.dragging = false;
+        document.body.classList.remove("dragging");
+        if (event.from === event.to) return;
+        requestMove(Number(event.item.dataset.id), Number(event.to.dataset.stage));
+      },
+    });
+  });
+}
+
+/* Asks for whatever the destination stage needs, then saves. Cancelling puts the tile back. */
+async function requestMove(quoteId, stageId) {
+  const quote = state.quotes.find((q) => q.id === quoteId);
+  const target = stageById(stageId);
+  const source = stageById(quote.stage_id);
+  const closedKinds = ["won", "lost"];
+  const reopening = closedKinds.includes(source.kind) && !closedKinds.includes(target.kind);
+  const fields = {};
+  const body = [];
+  if (target.requires_owner && !quote.engineering_owner_id) {
+    fields.engineering_owner_id = el("select", { required: true }, userOptions(state.me.id, "Choose an engineering owner"));
+    body.push(el("label", {}, "Engineering owner", fields.engineering_owner_id));
+  }
+  if (target.kind === "hold") {
+    fields.missing_info = el("textarea", { required: true, placeholder: "Current print revision and annual volume" });
+    fields.follow_up_owner_id = el("select", { required: true }, userOptions("", "Choose a person"));
+    body.push(el("label", {}, "What's missing?", fields.missing_info), el("label", {}, "Who will follow up?", fields.follow_up_owner_id));
+  }
+  if (target.kind === "lost") {
+    fields.loss_reason = el("select", { required: true }, options(state.lossReasons.map((r) => [r, r]), "", "Choose a reason"));
+    body.push(el("label", {}, "Why was it lost?", fields.loss_reason));
+  }
+  if (target.kind === "won") body.push(el("p", {}, `This queues ${quote.quote_number} for the launch tracker handoff.`));
+  if (reopening || target.kind === "won" || target.kind === "lost") {
+    fields.note = el("textarea", { required: reopening, placeholder: reopening ? "Why is this being reopened?" : "" });
+    body.push(el("label", {}, reopening ? "Reason for reopening" : "Note (optional)", fields.note));
+  }
+
+  const payload = { to_stage_id: stageId, version: quote.version };
+  const save = async () => {
+    await api("POST", `/api/quotes/${quoteId}/move`, payload);
+    await refresh();
+    toast(`${quote.quote_number} moved to ${target.name}`);
+  };
+  if (!body.length) {
+    try { await save(); } catch (error) { await refresh().catch(() => {}); handleError(error); }
+    return;
+  }
+  formDialog({
+    title: `Move to ${target.name}`, subtitle: `${quote.quote_number}: ${quote.title}`, body, submitLabel: `Move to ${target.name}`, small: true,
+    onSubmit: async () => {
+      for (const [key, input] of Object.entries(fields)) payload[key] = input.value;
+      await save();
+    },
+    onCancel: render,
+  });
+}
+
+/* ---------- dialogs ---------- */
+function formDialog({ title, subtitle, body, submitLabel, onSubmit, onCancel, small, readOnly }) {
+  const message = el("div", { class: "error", role: "alert" });
+  let finished = false;
+  const dialog = el("dialog", { class: small ? "small" : "", onclose: () => { dialog.remove(); if (!finished && onCancel) onCancel(); } });
+  const form = el("form", {
+    onsubmit: async (event) => {
+      event.preventDefault();
+      message.textContent = "";
+      try {
+        await onSubmit();
+        finished = true;
+        dialog.close();
+      } catch (error) {
+        if (error.status === 401 || error.status === 409) { finished = true; dialog.close(); handleError(error); }
+        else message.textContent = error.message;
+      }
+    },
+  },
+    el("div", { class: "dialog-head" }, el("div", {}, el("h2", {}, title), subtitle && el("div", { class: "sub" }, subtitle))),
+    el("div", { class: "dialog-body" }, body, message),
+    el("div", { class: "dialog-foot" },
+      el("button", { class: "btn", type: "button", onclick: () => dialog.close() }, readOnly ? "Close" : "Cancel"),
+      !readOnly && el("button", { class: "btn primary", type: "submit" }, submitLabel)));
+  dialog.append(form);
+  document.body.append(dialog);
+  dialog.showModal();
+}
+
+function partRow(part = {}) {
+  const row = el("div", { class: "part-row" },
+    el("label", {}, "Part number", el("input", { name: "part_number", required: true, value: part.part_number ?? "" })),
+    el("label", {}, "Annual volume", el("input", { name: "annual_volume", type: "number", min: 0, step: 1, value: part.annual_volume ?? "" })),
+    el("label", {}, "Cycle time (s)", el("input", { name: "quoted_cycle_time_sec", type: "number", min: 0, step: "any", value: part.quoted_cycle_time_sec ?? "" })),
+    el("label", {}, "Unit price ($)", el("input", { name: "quoted_unit_price", type: "number", min: 0, step: "any", value: part.quoted_unit_price ?? "" })),
+    el("button", { class: "btn icon-btn", type: "button", "aria-label": "Remove part", onclick: () => row.remove() }, "×"));
+  return row;
+}
+
+async function openQuote(id) {
+  let quote = null;
+  if (id) {
+    try { quote = await api("GET", `/api/quotes/${id}`); } catch (error) { handleError(error); return; }
+  }
+  const q = quote || { work_type: "customer", parts: [] };
+  const input = {
+    title: el("input", { required: true, maxlength: 160, value: q.title ?? "", placeholder: "Valve body, 3 op lathe and mill" }),
+    customer: el("input", { required: true, maxlength: 120, list: "customer-list", value: q.customer ?? "" }),
+    work_type: el("select", {}, options([["customer", "Customer RFQ"], ["internal", "Internal work"]], q.work_type)),
+    sales_owner_id: el("select", {}, userOptions(q.sales_owner_id, "Unassigned")),
+    engineering_owner_id: el("select", {}, userOptions(q.engineering_owner_id, "Unassigned")),
+    due_date: el("input", { type: "date", value: q.due_date ?? "" }),
+    estimated_completion_date: el("input", { type: "date", value: q.estimated_completion_date ?? "" }),
+    key_deal: el("input", { type: "checkbox" }),
+    contact_name: el("input", { maxlength: 120, autocomplete: "off", value: q.contact_name ?? "" }),
+    contact_phone: el("input", { type: "tel", maxlength: 40, autocomplete: "off", value: q.contact_phone ?? "" }),
+    contact_email: el("input", { type: "email", maxlength: 160, autocomplete: "off", value: q.contact_email ?? "" }),
+    estimated_value: el("input", { type: "number", min: 0, step: "any", value: q.estimated_value ?? "" }),
+    notes: el("textarea", { maxlength: 4000 }, q.notes ?? ""),
+  };
+  input.key_deal.checked = Boolean(q.key_deal);
+  const parts = el("div", {}, q.parts.map(partRow));
+  const moveTo = quote && el("select", {}, options(state.stages.filter((s) => s.active || s.id === q.stage_id).map((s) => [s.id, s.name]), q.stage_id));
+  const body = [
+    !quote && el("div", { class: "notice" }, "Use made-up data on this demo."),
+    el("fieldset", { disabled: !canEdit() },
+      el("label", {}, "Title", input.title),
+      el("div", { class: "cols2" }, el("label", {}, "Customer", input.customer, el("datalist", { id: "customer-list" }, state.customers.map((c) => el("option", { value: c })))),
+        el("label", {}, "Work type", input.work_type)),
+      el("div", { class: "cols2" }, el("label", {}, "Sales owner", input.sales_owner_id), el("label", {}, "Engineering owner", input.engineering_owner_id)),
+      el("div", { class: "cols2" }, el("label", {}, "Quote due date", input.due_date), el("div", { class: "read-field" }, el("span", { class: "read-label" }, "Quote priority"),
+        q.sales_priority ? `${q.sales_priority} of ${state.quotes.filter((x) => x.sales_owner_id === q.sales_owner_id && x.sales_priority).length} for ${q.sales_owner_name}` : "Set in Priority order after a sales owner is assigned")),
+      el("div", { class: "cols2" }, el("label", {}, "Estimated completion date", input.estimated_completion_date),
+        el("label", { class: "check key-check" }, input.key_deal, "Key deal")),
+      el("label", {}, "Estimated annual value ($)", input.estimated_value),
+      el("div", {}, el("h3", {}, "Customer point of contact"), el("div", { class: "cols3" },
+        el("label", {}, "Name", input.contact_name), el("label", {}, "Phone", input.contact_phone), el("label", {}, "Email", input.contact_email))),
+      el("div", {}, el("div", { class: "parts-head" }, "Parts", canEdit() && el("button", { class: "btn", type: "button", onclick: () => parts.append(partRow()) }, "Add part")), parts),
+      el("label", {}, "Notes", input.notes)),
+    quote && canEdit() && el("label", {}, "Stage", moveTo),
+    quote && q.missing_info && el("div", { class: "notice" }, `Needs: ${q.missing_info}. Follow up: ${q.follow_up_owner_name}.`),
+    quote && q.loss_reason && el("div", { class: "notice" }, `Lost: ${q.loss_reason}`),
+    quote ? documentsSection(q) : el("p", { class: "empty-note" }, "You can add supporting documents after you create the quote."),
+    quote && el("div", {}, el("h3", {}, "History"), el("ul", { class: "history" }, q.history.map((h) => el("li", {},
+      h.from_stage ? `${h.from_stage} to ${h.to_stage}` : `Created in ${h.to_stage}`,
+      el("small", {}, `${h.user}, ${dateTime(h.created_at)}${h.note && h.note !== "Created" ? `: ${h.note}` : ""}`))))),
+  ];
+  formDialog({
+    title: quote ? q.title : "New quote", subtitle: quote ? `${q.quote_number}, ${q.customer}` : "Starts in the first stage",
+    body, readOnly: !canEdit(), submitLabel: quote ? "Save quote" : "Create quote",
+    onSubmit: async () => {
+      const payload = {
+        title: input.title.value, customer: input.customer.value, work_type: input.work_type.value,
+        sales_owner_id: input.sales_owner_id.value ? Number(input.sales_owner_id.value) : null,
+        engineering_owner_id: input.engineering_owner_id.value ? Number(input.engineering_owner_id.value) : null,
+        due_date: input.due_date.value || null, estimated_completion_date: input.estimated_completion_date.value || null,
+        key_deal: input.key_deal.checked,
+        contact_name: input.contact_name.value, contact_phone: input.contact_phone.value, contact_email: input.contact_email.value,
+        estimated_value: numberOrNull(input.estimated_value.value), notes: input.notes.value,
+        parts: [...parts.children].map((row) => ({
+          part_number: row.querySelector("[name=part_number]").value,
+          annual_volume: numberOrNull(row.querySelector("[name=annual_volume]").value),
+          quoted_cycle_time_sec: numberOrNull(row.querySelector("[name=quoted_cycle_time_sec]").value),
+          quoted_unit_price: numberOrNull(row.querySelector("[name=quoted_unit_price]").value),
+        })),
+      };
+      if (!quote) {
+        const created = await api("POST", "/api/quotes", payload);
+        await refresh();
+        toast(`${created.quote_number} created`);
+        return;
+      }
+      const saved = await api("PATCH", `/api/quotes/${q.id}`, { ...payload, version: q.version });
+      await refresh();
+      if (Number(moveTo.value) !== q.stage_id) setTimeout(() => requestMove(q.id, Number(moveTo.value)));
+      else toast(`${saved.quote_number} saved`);
+    },
+  });
+}
+
+const fileSize = (bytes) => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
+
+function documentsSection(q) {
+  const list = el("ul", { class: "history documents" });
+  const message = el("div", { class: "error", role: "alert" });
+  const docs = [...q.documents];
+  const draw = () => {
+    if (!docs.length) { list.replaceChildren(el("li", { class: "empty-note" }, "No documents yet.")); return; }
+    list.replaceChildren(...docs.map((doc) => {
+      const remove = el("button", { class: "btn", type: "button", onclick: async () => {
+        if (remove.dataset.armed !== "yes") { remove.dataset.armed = "yes"; remove.textContent = "Confirm remove"; return; }
+        try {
+          await api("DELETE", `/api/documents/${doc.id}`);
+          docs.splice(docs.indexOf(doc), 1);
+          draw();
+          refresh().catch(() => {});
+        } catch (error) { message.textContent = error.message; }
+      } }, "Remove");
+      const name = window.demoApi
+        ? el("button", { class: "link", type: "button", onclick: () => toast("Downloads work in the installed app.") }, doc.filename)
+        : el("a", { class: "link", href: `/api/documents/${doc.id}` }, doc.filename);
+      return el("li", { class: "document" }, el("div", {}, name, el("small", {}, `${fileSize(doc.size_bytes)}, ${doc.uploaded_by}, ${dateTime(doc.uploaded_at)}`)), canEdit() && remove);
+    }));
+  };
+  const picker = el("input", { type: "file", multiple: true, class: "file-input", "aria-label": "Add documents", onchange: async () => {
+    message.textContent = "";
+    for (const file of picker.files) {
+      try { docs.unshift(await uploadFile(`/api/quotes/${q.id}/documents`, file)); draw(); }
+      catch (error) { message.textContent = `${file.name}: ${error.message}`; }
+    }
+    picker.value = "";
+    refresh().catch(() => {});
+  } });
+  draw();
+  return el("div", {}, el("h3", {}, "Supporting documents"),
+    canEdit() && el("p", { class: "hint-text" }, "Up to 25 MB each. Don't upload confidential files."),
+    list, message, canEdit() && picker);
+}
+
+function openPassword() {
+  const current = el("input", { type: "password", required: true, autocomplete: "current-password" });
+  const next = el("input", { type: "password", required: true, minlength: 12, autocomplete: "new-password" });
+  formDialog({
+    title: "Change your password", small: true, submitLabel: "Change password",
+    body: [el("label", {}, "Current password", current), el("label", {}, "New password (12 or more characters)", next)],
+    onSubmit: async () => {
+      await api("POST", "/api/me/password", { current_password: current.value, new_password: next.value });
+      toast("Password changed");
+    },
+  });
+}
+
+/* ---------- report ---------- */
+function barList(rows, labelKey, valueKey, format = String, detail = () => "") {
+  const max = Math.max(1, ...rows.map((r) => r[valueKey]));
+  return rows.map((row) => {
+    const bar = el("div", { class: "bar", "data-tip": `${row[labelKey]}: ${format(row[valueKey])}${detail(row)}` });
+    bar.style.width = `${(row[valueKey] / max) * 100}%`;
+    if (!row[valueKey]) bar.style.display = "none";
+    return el("div", { class: "bar-row" }, el("span", {}, row[labelKey]), el("div", { class: "bar-track" }, bar), el("span", { class: "bar-value" }, format(row[valueKey])));
+  });
+}
+
+function renderReport() {
+  const page = el("main", { class: "page" }, el("p", { class: "empty-note" }, "Loading the report"));
+  api("GET", "/api/reports").then((r) => {
+    const stat = (value, label) => el("div", { class: "stat" }, el("b", {}, value ?? "No data"), el("span", {}, label));
+    const exportButton = el("button", { class: "btn", onclick: () => {
+      if (window.demoApi) toast("CSV export works in the installed app.");
+      else location.href = "/api/export/quotes.csv";
+    } }, "Export to CSV");
+    page.replaceChildren(
+      el("div", { class: "page-head" }, el("h2", {}, "Quoting report"), exportButton),
+      el("div", { class: "stats" }, stat(r.open_total, "Open quotes"), stat(r.unassigned, "No engineering owner"), stat(r.internal_open, "Open internal work"), stat(r.key_deals_open, "Open key deals"),
+        stat(r.hit_rate === null ? null : `${r.hit_rate}%`, `Hit rate, 12 months (${r.won} won, ${r.lost} lost)`),
+        stat(r.median_turnaround_days === null ? null : `${r.median_turnaround_days}d`, "Median RFQ to quote complete"),
+        stat(r.kickbacks, "Sent back for info, 12 months")),
+      el("section", { class: "panel" }, el("h3", {}, "Who is working on what"),
+        r.workload.length ? el("div", { class: "scroll" }, el("table", {},
+          el("thead", {}, el("tr", {}, el("th", {}, "Engineering owner"), el("th", { class: "num" }, "Customer"), el("th", { class: "num" }, "Internal"), el("th", { class: "num" }, "Oldest in stage"), el("th", {}, "Open quotes"))),
+          el("tbody", {}, r.workload.map((w) => el("tr", {}, el("td", {}, w.owner), el("td", { class: "num" }, w.customer), el("td", { class: "num" }, w.internal), el("td", { class: "num" }, `${Math.floor(w.oldest_days)}d`),
+            el("td", {}, el("ul", { class: "work-list" }, w.quotes.map((q) => el("li", {}, `${q.quote_number} ${q.title} `, el("span", {}, `(${q.stage})`)))))))))) 
+        : el("p", { class: "empty-note" }, "Open quotes will show here with their owners.")),
+      el("section", { class: "panel" }, el("h3", {}, "Top priority by salesperson"),
+        r.sales_priorities.length ? el("div", { class: "scroll" }, el("table", {},
+          el("thead", {}, el("tr", {}, el("th", {}, "Sales owner"), el("th", {}, "Priority"), el("th", {}, "Quotes"))),
+          el("tbody", {}, r.sales_priorities.map((p) => el("tr", {}, el("td", {}, p.owner), el("td", {}, `P${p.priority}`),
+            el("td", {}, el("ul", { class: "work-list" }, p.quotes.map((q) => el("li", {}, `${q.quote_number} ${q.title} `, el("span", {}, `(${q.customer}${q.key_deal ? ", key deal" : ""})`)))))))))) 
+        : el("p", { class: "empty-note" }, "Set a sales owner and priority on open quotes to fill this in.")),
+      el("div", { class: "grid2" },
+        el("section", { class: "panel" }, el("h3", {}, "Open quotes by stage"), barList(r.pipeline, "stage", "count")),
+        el("section", { class: "panel" }, el("h3", {}, "Median days in stage"), el("p", { class: "hint" }, "Finished stage visits only"),
+          r.stage_days.length ? barList(r.stage_days, "stage", "median_days") : el("p", { class: "empty-note" }, "This fills in as quotes move through stages."))),
+      el("section", { class: "panel" }, el("h3", {}, "Lost quote reasons, 12 months"),
+        r.loss_reasons.length ? barList(r.loss_reasons, "reason", "count") : el("p", { class: "empty-note" }, "Lost quotes will show here with their reasons.")));
+  }).catch(handleError);
+  return page;
+}
+
+/* ---------- sales dashboard ---------- */
+const money = (v) => (v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${Math.round(v / 1000)}K`);
+const moneyAxis = (v) => (v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v ? `$${Math.round(v / 1000)}K` : "$0");
+const SERIES = ["var(--series-1)", "var(--series-2)", "var(--series-3)"];
+
+function svg(tag, attrs = {}, ...children) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+  node.append(...children);
+  return node;
+}
+
+function niceScale(value) {
+  const rough = value / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const step = [1, 2, 2.5, 5, 10].find((m) => m * magnitude >= rough) * magnitude;
+  return { step, top: Math.ceil(value / step) * step };
+}
+
+function chartFrame(categories, maxValue, height = 230) {
+  const box = { left: 46, right: 470, top: 10, bottom: height - 24 };
+  const { step, top } = niceScale(maxValue);
+  const y = (v) => box.bottom - (v / top) * (box.bottom - box.top);
+  const band = (box.right - box.left) / categories.length;
+  const root = svg("svg", { viewBox: `0 0 480 ${height}`, class: "chart" });
+  for (let value = 0; value <= top; value += step) {
+    root.append(svg("line", { x1: box.left, x2: box.right, y1: y(value), y2: y(value), class: "grid" }),
+      svg("text", { x: box.left - 6, y: y(value) + 4, "text-anchor": "end" }, moneyAxis(value)));
+  }
+  categories.forEach((c, i) => root.append(svg("text", { x: box.left + band * (i + 0.5), y: height - 6, "text-anchor": "middle" }, c)));
+  return { root, box, y, band };
+}
+
+function roundedTop(x, top, width, bottom, radius) {
+  const r = Math.min(radius, bottom - top, width / 2);
+  return `M${x} ${bottom}V${top + r}Q${x} ${top} ${x + r} ${top}H${x + width - r}Q${x + width} ${top} ${x + width} ${top + r}V${bottom}Z`;
+}
+
+function hitArea(frame, index, tip) {
+  return svg("rect", { x: frame.box.left + frame.band * index, y: frame.box.top, width: frame.band, height: frame.box.bottom - frame.box.top, class: "hit", "data-tip": tip });
+}
+
+function stackedColumns({ categories, series }) {
+  const totals = categories.map((_, i) => series.reduce((sum, s) => sum + s.values[i], 0));
+  const frame = chartFrame(categories, Math.max(...totals));
+  const width = Math.min(24, frame.band * 0.5);
+  categories.forEach((category, i) => {
+    let running = 0;
+    const x = frame.box.left + frame.band * (i + 0.5) - width / 2;
+    const present = series.map((s, n) => n).filter((n) => series[n].values[i] > 0);
+    present.forEach((n) => {
+      const value = series[n].values[i];
+      const bottom = frame.y(running) - (running ? 1 : 0);
+      running += value;
+      const top = frame.y(running) + (n === present.at(-1) ? 0 : 1);
+      frame.root.append(svg("path", { d: n === present.at(-1) ? roundedTop(x, top, width, bottom, 4) : `M${x} ${bottom}V${top}H${x + width}V${bottom}Z`, fill: SERIES[n] }));
+    });
+    frame.root.append(hitArea(frame, i, `${category}: ${series.map((s) => `${s.name} ${money(s.values[i])}`).join(", ")}`));
+  });
+  return frame.root;
+}
+
+function groupedColumns({ categories, series }) {
+  const frame = chartFrame(categories, Math.max(...series.flatMap((s) => s.values)));
+  const width = Math.min(24, frame.band * 0.3);
+  categories.forEach((category, i) => {
+    const center = frame.box.left + frame.band * (i + 0.5);
+    series.forEach((s, n) => {
+      const x = center + (n - series.length / 2) * (width + 2) + 1;
+      frame.root.append(svg("path", { d: roundedTop(x, frame.y(s.values[i]), width, frame.box.bottom, 4), fill: SERIES[n] }));
+    });
+    frame.root.append(hitArea(frame, i, `${category}: ${series.map((s) => `${s.name} ${money(s.values[i])}`).join(", ")}`));
+  });
+  return frame.root;
+}
+
+function lineChart({ categories, values }) {
+  const frame = chartFrame(categories, Math.max(...values));
+  const x = (i) => frame.box.left + frame.band * (i + 0.5);
+  const points = values.map((v, i) => `${x(i)},${frame.y(v)}`).join(" ");
+  frame.root.append(svg("polyline", { points, class: "line" }));
+  const last = values.length - 1;
+  frame.root.append(svg("circle", { cx: x(last), cy: frame.y(values[last]), r: 5, class: "dot" }),
+    svg("text", { x: x(last), y: frame.y(values[last]) - 11, "text-anchor": "middle", class: "end-label" }, money(values[last])));
+  values.forEach((v, i) => frame.root.append(hitArea(frame, i, `${categories[i]}: ${money(v)}`)));
+  return frame.root;
+}
+
+function legend(series) {
+  return el("div", { class: "legend" }, series.map((s, n) => {
+    const swatch = el("span", { class: "swatch" });
+    swatch.style.background = SERIES[n];
+    return el("span", {}, swatch, s.name);
+  }));
+}
+
+function dataTable(headers, rows) {
+  return el("details", { class: "chart-table" }, el("summary", {}, "View table"), el("div", { class: "scroll" }, el("table", {},
+    el("thead", {}, el("tr", {}, headers.map((h, i) => el("th", { class: i ? "num" : "" }, h)))),
+    el("tbody", {}, rows.map((row) => el("tr", {}, row.map((cell, i) => el("td", { class: i ? "num" : "" }, cell))))))));
+}
+
+const seriesTable = (d, first) => dataTable([first, ...d.series.map((s) => s.name)], d.categories.map((c, i) => [c, ...d.series.map((s) => money(s.values[i]))]));
+const chartPanel = (title, hint, ...content) => el("section", { class: "panel" }, el("h3", {}, title), el("p", { class: "hint" }, hint), content);
+
+function renderSales() {
+  const page = el("main", { class: "page" }, el("p", { class: "empty-note" }, "Loading the sales dashboard"));
+  api("GET", "/api/sales-dashboard").then((d) => {
+    const k = d.kpis;
+    const stat = (value, label) => el("div", { class: "stat" }, el("b", {}, value), el("span", {}, label));
+    const deals = (row) => ` across ${row.deals} deals`;
+    const percent = (v) => `${v}%`;
+    page.replaceChildren(
+      el("div", { class: "page-head" }, el("h2", {}, "Sales dashboard")),
+      el("div", { class: "notice sample-note" }, "Sample data. These numbers are made up and aren't connected to a CRM or the board."),
+      el("div", { class: "stats" }, stat(money(k.open_pipeline), "Open pipeline"), stat(money(k.weighted_forecast), "Weighted forecast"),
+        stat(money(k.created_this_quarter), "Created this quarter"), stat(money(k.closing_this_month), "Closing this month"),
+        stat(`${k.win_rate}%`, "Win rate"), stat(money(k.average_won_deal), "Average won deal")),
+      el("div", { class: "grid2 sales-grid" },
+        chartPanel("Open pipeline by stage", "Where the money sits today", barList(d.pipeline_by_stage, "label", "value", money, deals),
+          dataTable(["Stage", "Value", "Deals"], d.pipeline_by_stage.map((r) => [r.label, money(r.value), r.deals]))),
+        chartPanel("Pipeline by expected close month", "When revenue may land, by forecast category", legend(d.close_months.series), stackedColumns(d.close_months), seriesTable(d.close_months, "Month")),
+        chartPanel("Forecast versus actual", "Forecast at the start of each quarter against what closed", legend(d.forecast_vs_actual.series), groupedColumns(d.forecast_vs_actual), seriesTable(d.forecast_vs_actual, "Quarter")),
+        chartPanel("Closed won and lost", "Value closed each month", legend(d.closed.series), stackedColumns(d.closed), seriesTable(d.closed, "Month")),
+        chartPanel("Win rate by rep", "Share of closed deals won", barList(d.win_rate_by_rep, "label", "value", percent, deals),
+          dataTable(["Rep", "Win rate", "Closed deals"], d.win_rate_by_rep.map((r) => [r.label, `${r.value}%`, r.deals]))),
+        chartPanel("Pipeline over time", "Open pipeline at each month end", lineChart(d.pipeline_history),
+          dataTable(["Month", "Open pipeline"], d.pipeline_history.categories.map((c, i) => [c, money(d.pipeline_history.values[i])]))),
+        chartPanel("Where deals are lost", "Last stage before Lost", barList(d.lost_by_stage, "label", "value"),
+          dataTable(["Stage", "Lost deals"], d.lost_by_stage.map((r) => [r.label, r.value]))),
+        chartPanel("Top accounts", "Open pipeline by account", barList(d.top_accounts, "label", "value", money),
+          dataTable(["Account", "Open pipeline"], d.top_accounts.map((r) => [r.label, money(r.value)])))),
+      el("section", { class: "panel" }, el("h3", {}, "Stale deals"), el("p", { class: "hint" }, "Open deals with no recent activity, largest first"),
+        el("div", { class: "scroll" }, el("table", {},
+          el("thead", {}, el("tr", {}, ["Deal", "Account", "Owner", "Stage"].map((h) => el("th", {}, h)), el("th", { class: "num" }, "Value"), el("th", { class: "num" }, "Days idle"))),
+          el("tbody", {}, d.stale.map((r) => el("tr", {}, el("td", {}, r.deal), el("td", {}, r.account), el("td", {}, r.owner), el("td", {}, r.stage), el("td", { class: "num" }, money(r.value)), el("td", { class: "num" }, r.days))))))));
+  }).catch(handleError);
+  return page;
+}
+
+/* ---------- chart hover ---------- */
+const chartTip = el("div", { class: "chart-tip", hidden: true });
+document.body.append(chartTip);
+document.addEventListener("mousemove", (event) => {
+  const target = event.target.closest?.("[data-tip]");
+  chartTip.hidden = !target;
+  if (!target) return;
+  chartTip.textContent = target.dataset.tip;
+  chartTip.style.left = `${Math.min(event.clientX + 12, window.innerWidth - chartTip.offsetWidth - 8)}px`;
+  chartTip.style.top = `${event.clientY + 14}px`;
+});
+
+/* ---------- settings ---------- */
+function renderSettings() {
+  const run = (action) => async (...args) => {
+    try { await action(...args); await refresh(); } catch (error) { handleError(error); await refresh().catch(() => {}); }
+  };
+  const move = (index, delta) => run(async () => {
+    const ids = state.stages.map((s) => s.id);
+    [ids[index], ids[index + delta]] = [ids[index + delta], ids[index]];
+    await api("PUT", "/api/stages/order", { stage_ids: ids });
+  });
+  const patchStage = (stage, data) => run(() => api("PATCH", `/api/stages/${stage.id}`, data));
+
+  const stageRows = state.stages.map((stage, index) => el("div", { class: "settings-row" },
+    el("div", { class: "order" },
+      el("button", { class: "btn icon-btn", "aria-label": `Move ${stage.name} earlier`, disabled: index === 0, onclick: move(index, -1) }, "↑"),
+      el("button", { class: "btn icon-btn", "aria-label": `Move ${stage.name} later`, disabled: index === state.stages.length - 1, onclick: move(index, 1) }, "↓")),
+    el("input", { value: stage.name, "aria-label": "Stage name", onchange: (event) => patchStage(stage, { name: event.target.value })() }),
+    el("span", { class: "lane-tag" }, stage.lane === "sales" ? "Sales" : "Engineering"),
+    el("label", { class: "check" }, el("input", { type: "checkbox", checked: Boolean(stage.requires_owner), onchange: (event) => patchStage(stage, { requires_owner: event.target.checked })() }), "Needs engineer"),
+    el("label", { class: "check" }, el("input", { type: "checkbox", checked: Boolean(stage.active), onchange: (event) => patchStage(stage, { active: event.target.checked })() }), "Show")));
+
+  const newStage = { name: el("input", { required: true, maxlength: 40 }), lane: el("select", {}, options([["engineering", "Engineering"], ["sales", "Sales"]], "sales")),
+                     kind: el("select", {}, options([["open", "Active work"], ["hold", "On hold, asks what's missing"]], "open")) };
+  const stageForm = el("form", { class: "form-row", onsubmit: (event) => { event.preventDefault();
+      run(() => api("POST", "/api/stages", { name: newStage.name.value, lane: newStage.lane.value, kind: newStage.kind.value }))(); } },
+    el("label", {}, "New stage", newStage.name), el("label", {}, "Lane", newStage.lane), el("label", {}, "Type", newStage.kind), el("button", { class: "btn" }, "Add stage"));
+
+  const roles = [["admin", "Admin"], ["quoter", "Quoter"], ["sales", "Sales"], ["viewer", "Viewer"]];
+  const userRows = state.users.map((user) => el("div", { class: "settings-row user-row" },
+    el("div", {}, user.display_name, el("div", { class: "lane-tag" }, user.username)),
+    el("select", { "aria-label": `Role for ${user.display_name}`, onchange: (event) => run(() => api("PATCH", `/api/users/${user.id}`, { role: event.target.value }))() }, options(roles, user.role)),
+    el("label", { class: "check" }, el("input", { type: "checkbox", checked: Boolean(user.active), onchange: (event) => run(() => api("PATCH", `/api/users/${user.id}`, { active: event.target.checked }))() }), "Active"),
+    el("button", { class: "btn", onclick: () => resetPassword(user) }, "Reset password")));
+
+  const newUser = { display_name: el("input", { required: true }), username: el("input", { required: true, autocomplete: "off" }),
+                    role: el("select", {}, options(roles, "quoter")), password: el("input", { type: "password", required: true, minlength: 12, autocomplete: "new-password" }) };
+  const userForm = el("form", { class: "form-row", onsubmit: (event) => { event.preventDefault();
+      run(() => api("POST", "/api/users", Object.fromEntries(Object.entries(newUser).map(([k, v]) => [k, v.value]))))(); } },
+    el("label", {}, "Name", newUser.display_name), el("label", {}, "Username", newUser.username), el("label", {}, "Role", newUser.role),
+    el("label", {}, "Temporary password", newUser.password), el("button", { class: "btn" }, "Add user"));
+
+  const handoff = el("section", { class: "panel" }, el("h3", {}, "Waiting for the launch tracker"), el("p", { class: "empty-note" }, "Loading"));
+  api("GET", "/api/handoffs").then((items) => {
+    const pending = items.filter((i) => i.status === "pending");
+    handoff.replaceChildren(el("h3", {}, "Waiting for the launch tracker"),
+      el("p", { class: "hint" }, "Won quotes queue here until the two apps are connected."),
+      pending.length ? el("ul", { class: "history" }, pending.map((i) => el("li", {}, `${i.payload.quote_number}: ${i.payload.title}`, el("small", {}, `${i.event_type === "quote.won" ? "Won" : "Reopened"}, ${dateTime(i.created_at)}`))))
+        : el("p", { class: "empty-note" }, "Nothing is waiting."));
+  }).catch(handleError);
+
+  return el("main", { class: "page" }, el("div", { class: "page-head" }, el("h2", {}, "Settings")),
+    el("div", { class: "grid2" },
+      el("section", { class: "panel" }, el("h3", {}, "Stages"), stageRows, stageForm),
+      el("section", { class: "panel" }, el("h3", {}, "People"), userRows, userForm)),
+    handoff);
+}
+
+function resetPassword(user) {
+  const password = el("input", { type: "password", required: true, minlength: 12, autocomplete: "new-password" });
+  formDialog({
+    title: `Reset password for ${user.display_name}`, small: true, submitLabel: "Reset password",
+    body: [el("label", {}, "Temporary password (12 or more characters)", password)],
+    onSubmit: async () => { await api("PATCH", `/api/users/${user.id}`, { password: password.value }); toast("Password reset"); },
+  });
+}
+
+/* ---------- start ---------- */
+setInterval(() => {
+  const busy = state.dragging || document.querySelector("dialog[open]") || document.activeElement?.matches("input, select, textarea");
+  if (state.me && state.view === "board" && !busy && !document.hidden) refresh().catch(handleError);
+}, 30000);
+
+refresh().catch((error) => (error.status === 401 ? renderLogin() : handleError(error)));
+
+</script>
+</body>
+</html>
