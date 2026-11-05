@@ -100,6 +100,8 @@ label.check { display: flex; align-items: center; gap: 7px; font-weight: 400; wh
   grid-row: 1; font: 600 16px "Barlow Condensed", Arial, sans-serif; color: var(--ink-soft);
   border-bottom: 2px solid var(--ink-soft); padding-bottom: 2px; margin-bottom: 7px;
 }
+.lane-label.engineering { color: var(--dye); border-bottom-color: var(--dye); }
+.lane-label.shared { color: var(--ink); border-bottom-style: double; border-bottom-width: 4px; padding-bottom: 0; }
 .column { grid-row: 2; display: flex; flex-direction: column; min-height: calc(100vh - 210px); background: var(--steel-deep); border-radius: 3px; }
 .column header { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 10px 4px; gap: 8px; }
 .column h2 { font-size: 19px; }
@@ -189,7 +191,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .work-list span { color: var(--ink-soft); }
 .empty-note { color: var(--ink-soft); margin: 4px 0; }
 
-.settings-row { display: grid; grid-template-columns: 74px minmax(110px, 1fr) 80px auto auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.settings-row { display: grid; grid-template-columns: 74px minmax(100px, 1fr) 118px auto auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .settings-row .order { display: flex; gap: 2px; }
 .icon-btn { width: 34px; min-height: 34px; padding: 0; }
 .lane-tag { color: var(--ink-soft); font-size: 14px; }
@@ -288,7 +290,7 @@ window.SALES_SAMPLE = {"sample": true, "kpis": {"open_pipeline": 8020000, "weigh
   const users = [["Avery Bell","quoter"],["Carla Diaz","quoter"],["Ethan Ford","quoter"],["Sam Reed","sales"],["Maya Stone","sales"],["Demo Admin","admin"]]
     .map(([n, role], i) => ({ id: i + 1, username: n.split(" ")[0].toLowerCase(), display_name: n, initials: n.split(" ").map((w) => w[0]).join(""), role, active: 1 }));
   const S = (key, name, lane, kind, requires_owner) => ({ key, name, lane, kind, requires_owner, active: 1 });
-  const stages = [S("intake","Intake","engineering","hold",0),S("rfq","RFQ","engineering","open",0),S("quoting","Quoting","engineering","open",1),S("quote_complete","Quote Complete","engineering","open",1),S("submitted","Submitted","sales","open",0),S("order_review","Order Review","sales","open",0),S("won","Won","sales","won",0),S("lost","Lost","sales","lost",0)].map((s, i) => ({ ...s, id: i + 1, position: i }));
+  const stages = [S("intake","Intake","sales","hold",0),S("rfq","RFQ","shared","open",0),S("quoting","Quoting","engineering","open",1),S("quote_complete","Quote Complete","shared","open",1),S("submitted","Submitted","sales","open",0),S("order_review","Order Review","sales","open",0),S("won","Won","sales","won",0),S("lost","Lost","sales","lost",0)].map((s, i) => ({ ...s, id: i + 1, position: i }));
   const reasons = ["Price","Lead time","Capability","No bid","Customer cancelled","Other"];
   const sk = (k) => stages.find((s) => s.key === k);
   const by = (id) => stages.find((s) => s.id === id);
@@ -778,16 +780,22 @@ function buildTable() {
     el("table", { class: "quote-table" }, el("thead", {}, el("tr", {}, header)), el("tbody", {}, body))));
 }
 
+const LANES = { sales: "Sales", engineering: "Engineering", shared: "Sales + Engineering" };
+
 function buildColumns() {
   const stages = state.stages.filter((s) => s.active);
-  const lane = (name, title) => {
-    const count = stages.filter((s) => s.lane === name).length;
-    if (!count) return null;
-    const label = el("div", { class: "lane-label" }, title);
+  /* Side-by-side stages with the same owner share one header. */
+  const headers = [];
+  stages.forEach((stage) => {
+    const last = headers.at(-1);
+    if (last && last.lane === stage.lane) last.count += 1;
+    else headers.push({ lane: stage.lane, count: 1 });
+  });
+  const board = el("div", { class: "board" }, headers.map(({ lane, count }) => {
+    const label = el("div", { class: `lane-label ${lane}` }, LANES[lane]);
     label.style.gridColumn = `span ${count}`;
     return label;
-  };
-  const board = el("div", { class: "board" }, lane("engineering", "Engineering"), lane("sales", "Sales"), stages.map(column));
+  }), stages.map(column));
   stages.forEach((s, index) => { board.querySelectorAll(".column")[index].style.gridColumn = String(index + 1); });
   return board;
 }
@@ -1245,11 +1253,11 @@ function renderSettings() {
       el("button", { class: "btn icon-btn", "aria-label": `Move ${stage.name} earlier`, disabled: index === 0, onclick: move(index, -1) }, "↑"),
       el("button", { class: "btn icon-btn", "aria-label": `Move ${stage.name} later`, disabled: index === state.stages.length - 1, onclick: move(index, 1) }, "↓")),
     el("input", { value: stage.name, "aria-label": "Stage name", onchange: (event) => patchStage(stage, { name: event.target.value })() }),
-    el("span", { class: "lane-tag" }, stage.lane === "sales" ? "Sales" : "Engineering"),
+    el("select", { "aria-label": `Owner lane for ${stage.name}`, onchange: (event) => patchStage(stage, { lane: event.target.value })() }, options(Object.entries(LANES), stage.lane)),
     el("label", { class: "check" }, el("input", { type: "checkbox", checked: Boolean(stage.requires_owner), onchange: (event) => patchStage(stage, { requires_owner: event.target.checked })() }), "Needs engineer"),
     el("label", { class: "check" }, el("input", { type: "checkbox", checked: Boolean(stage.active), onchange: (event) => patchStage(stage, { active: event.target.checked })() }), "Show")));
 
-  const newStage = { name: el("input", { required: true, maxlength: 40 }), lane: el("select", {}, options([["engineering", "Engineering"], ["sales", "Sales"]], "sales")),
+  const newStage = { name: el("input", { required: true, maxlength: 40 }), lane: el("select", {}, options(Object.entries(LANES), "sales")),
                      kind: el("select", {}, options([["open", "Active work"], ["hold", "On hold, asks what's missing"]], "open")) };
   const stageForm = el("form", { class: "form-row", onsubmit: (event) => { event.preventDefault();
       run(() => api("POST", "/api/stages", { name: newStage.name.value, lane: newStage.lane.value, kind: newStage.kind.value }))(); } },
